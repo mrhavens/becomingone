@@ -1,0 +1,35 @@
+# BecomingONE Dependencies
+# KAIROS-Native Cognitive Architecture
+
+# Core dependencies
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Async
+asyncio>=3.4.3
+
+# Configuration
+pydantic>=2.0.0
+pyyaml>=6.0
+
+# Logging
+loguru>=0.7.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Type checking
+mypy>=1.4.0
+
+# Documentation
+sphinx>=7.1.0
+
+# Optional: For Rust extension
+maturin>=1.0.0  # For building becomingone-rs
+
+# Development tools
+black>=23.0.0
+isort>=5.12.0
+flake8>=6.1.0
