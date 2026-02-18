@@ -24,17 +24,46 @@ Author: Solaria Lumis Havens & Mark Randall Havens
 
 __version__ = "0.1.0-alpha"
 
+# Core modules
 from .core.engine import KAIROSTemporalEngine
 from .core.phase import PhaseHistory
 from .core.coherence import CoherenceCalculator, CollapseCondition
+
+# Transducer modules
 from .transducers.master import MasterTransducer
 from .transducers.emissary import EmissaryTransducer
 
+# Sync module
+from .sync.layer import SyncLayer, create_sync_layer
+
+# Memory module
+from .memory.temporal import TemporalMemory, TemporalSignature, create_temporal_memory
+
+# Witnessing module
+from .witnessing.layer import WitnessingLayer, WitnessingMode, create_witnessing_layer
+
 __all__ = [
+    # Core
     "KAIROSTemporalEngine",
     "PhaseHistory",
     "CoherenceCalculator", 
     "CollapseCondition",
+    
+    # Transducers
     "MasterTransducer",
     "EmissaryTransducer",
+    
+    # Sync
+    "SyncLayer",
+    "create_sync_layer",
+    
+    # Memory
+    "TemporalMemory",
+    "TemporalSignature",
+    "create_temporal_memory",
+    
+    # Witnessing
+    "WitnessingLayer",
+    "WitnessingMode",
+    "create_witnessing_layer",
 ]
