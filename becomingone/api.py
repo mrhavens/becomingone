@@ -194,8 +194,11 @@ def init_engine(
     
     # Create temporal memory
     temporal_memory = TemporalMemory(
-        coherence_threshold=coherence_threshold,
-        max_signatures=10000,
+        storage_path="./memory",
+        max_memories=10000,
+        consolidation_interval=3600,
+        decay_base=0.01,
+        attention_threshold=coherence_threshold,
     )
     
     # Create master and emissary transducers with proper configs
