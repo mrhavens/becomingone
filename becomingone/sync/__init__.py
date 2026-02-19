@@ -13,8 +13,14 @@ References:
 - KAIROS_ADAMON Section 4: Temporal Collapse Integral
 """
 
-from .layer import SynchronizationLayer
+from .layer import SynchronizationLayer, SyncConfig, create_sync_layer
+
+# Alias for convenience
+SyncLayer = SynchronizationLayer
 
 __all__ = [
     "SynchronizationLayer",
+    "SyncLayer",
+    "SyncConfig",
+    "create_sync_layer",
 ]

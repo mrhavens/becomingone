@@ -350,3 +350,40 @@ class SynchronizationLayer:
             f"collapsed={self._collapsed}"
             f")"
         )
+
+
+def create_sync_layer(
+    master: Optional[MasterTransducer] = None,
+    emissary: Optional[EmissaryTransducer] = None,
+    phase_threshold: float = 0.1,
+    collapse_threshold: float = 0.80,
+    dampening: float = 0.995
+) -> SynchronizationLayer:
+    """
+    Factory function to create a configured Synchronization Layer.
+    
+    Creates transducers if not provided.
+    
+    Args:
+        master: Optional Master transducer (creates default if None)
+        emissary: Optional Emissary transducer (creates default if None)
+        phase_threshold: Delta_phase threshold for coherence
+        collapse_threshold: I_c for synchronized collapse
+        dampening: Factor to prevent runaway sync
+        
+    Returns:
+        Configured SynchronizationLayer instance
+    """
+    if master is None:
+        master = MasterTransducer(MasterConfig())
+    
+    if emissary is None:
+        emissary = EmissaryTransducer(EmissaryConfig())
+    
+    config = SyncConfig(
+        phase_threshold=phase_threshold,
+        collapse_threshold=collapse_threshold,
+        dampening=dampening
+    )
+    
+    return SynchronizationLayer(master, emissary, config)

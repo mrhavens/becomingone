@@ -34,7 +34,7 @@ from .transducers.master import MasterTransducer
 from .transducers.emissary import EmissaryTransducer
 
 # Sync module
-from .sync.layer import SyncLayer, create_sync_layer
+from .sync import SyncLayer, SynchronizationLayer, SyncConfig, create_sync_layer
 
 # Memory module
 from .memory.temporal import TemporalMemory, TemporalSignature, create_temporal_memory
@@ -55,6 +55,8 @@ __all__ = [
     
     # Sync
     "SyncLayer",
+    "SynchronizationLayer",
+    "SyncConfig",
     "create_sync_layer",
     
     # Memory
