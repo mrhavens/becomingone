@@ -52,13 +52,14 @@ logger.add(sys.stderr, format="{time} | {level} | {message}")
 
 # Global engine instance
 engine: Optional[KAIROSTemporalEngine] = None
+_engine_components: Optional[Dict[str, Any]] = None
 
 
 async def health_check() -> Dict[str, Any]:
     """Return system health status."""
-    global engine
+    global _engine_components
     
-    if engine is None:
+    if _engine_components is None:
         return {
             "status": "not_ready",
             "timestamp": datetime.utcnow().isoformat(),
@@ -69,28 +70,32 @@ async def health_check() -> Dict[str, Any]:
             "message": "Engine not initialized",
         }
     
+    master = _engine_components.get("master")
+    emissary = _engine_components.get("emissary")
+    sync = _engine_components.get("sync")
+    
     # Get current coherence values
-    master_coherence = engine.master.get_coherence() if engine.master else None
-    emissary_coherence = engine.emissary.get_coherence() if engine.emissary else None
-    sync_coherence = engine.sync.get_coherence() if engine.sync else None
+    master_coherence = master.get_coherence() if master else None
+    emissary_coherence = emissary.get_coherence() if emissary else None
+    sync_coherence = sync.get_coherence() if sync else None
     
     return {
         "status": "ready",
         "timestamp": datetime.utcnow().isoformat(),
-        "coherence": float(engine.coherence) if engine.coherence else None,
+        "coherence": float(sync_coherence) if sync_coherence else None,
         "master_coherence": float(master_coherence) if master_coherence else None,
         "emissary_coherence": float(emissary_coherence) if emissary_coherence else None,
         "sync_coherence": float(sync_coherence) if sync_coherence else None,
-        "sync_aligned": bool(engine.sync_aligned) if hasattr(engine, 'sync_aligned') else None,
+        "sync_aligned": bool(sync.is_aligned()) if sync else None,
         "version": "0.1.0-alpha",
     }
 
 
 async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """Process input through the KAIROS engine."""
-    global engine
+    global _engine_components
     
-    if engine is None:
+    if _engine_components is None:
         return {"error": "Engine not initialized"}
     
     input_type = input_data.get("type", "text")
@@ -98,20 +103,23 @@ async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
     
     logger.info(f"Processing input: type={input_type}, content={content[:100]}...")
     
+    master = _engine_components.get("master")
+    emissary = _engine_components.get("emissary")
+    
     # Process based on input type
     if input_type == "text":
         # Convert text to temporal input
         # Simple encoding: use ord values as phase signals
         signals = np.array([ord(c) / 127.0 for c in content[:512]], dtype=np.float32)
-        result = await engine.process(signals)
+        result = await master.process(signals)
     elif input_type == "tokens":
         # Direct token input (for LLM integration)
         tokens = input_data.get("tokens", [])
-        result = await engine.process(np.array(tokens, dtype=np.float32))
+        result = await master.process(np.array(tokens, dtype=np.float32))
     elif input_type == "phase":
         # Direct phase input
         phases = input_data.get("phases", [])
-        result = await engine.process_phase(np.array(phases, dtype=np.float32))
+        result = await master.process_phase(np.array(phases, dtype=np.float32))
     else:
         return {"error": f"Unknown input type: {input_type}"}
     
@@ -126,24 +134,28 @@ async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
 
 async def get_coherence() -> Dict[str, Any]:
     """Get current coherence metrics."""
-    global engine
+    global _engine_components
     
-    if engine is None:
+    if _engine_components is None:
         return {"error": "Engine not initialized"}
     
+    master = _engine_components.get("master")
+    emissary = _engine_components.get("emissary")
+    sync = _engine_components.get("sync")
+    
     return {
-        "coherence": float(engine.coherence) if engine.coherence else None,
+        "coherence": float(sync.get_coherence()) if sync else None,
         "master": {
-            "coherence": float(engine.master.get_coherence()) if engine.master else None,
-            "phase": engine.master.phase.history[-100:].tolist() if hasattr(engine.master, 'phase') and len(engine.master.phase.history) > 0 else None,
+            "coherence": float(master.get_coherence()) if master else None,
+            "phase": master._engine._phases[-100:] if master and hasattr(master, '_engine') else None,
         },
         "emissary": {
-            "coherence": float(engine.emissary.get_coherence()) if engine.emissary else None,
-            "phase": engine.emissary.phase.history[-100:].tolist() if hasattr(engine.emissary, 'phase') and len(engine.emissary.phase.history) > 0 else None,
+            "coherence": float(emissary.get_coherence()) if emissary else None,
+            "phase": emissary._engine._phases[-100:] if emissary and hasattr(emissary, '_engine') else None,
         },
         "sync": {
-            "coherence": float(engine.sync.get_coherence()) if engine.sync else None,
-            "aligned": engine.sync_aligned if hasattr(engine, 'sync_aligned') else None,
+            "coherence": float(sync.get_coherence()) if sync else None,
+            "aligned": sync.is_aligned() if sync else None,
         },
         "timestamp": datetime.utcnow().isoformat(),
     }
@@ -151,7 +163,7 @@ async def get_coherence() -> Dict[str, Any]:
 
 async def reset_engine() -> Dict[str, Any]:
     """Reset the KAIROS engine to initial state."""
-    global engine
+    global _engine_components
     
     init_engine()
     
@@ -231,14 +243,21 @@ def init_engine(
         attention_threshold=coherence_threshold,
     )
     
-    # Create main engine
-    engine = KAIROSTemporalEngine(
-        master=master,
-        emissary=emissary,
-        sync_layer=sync_layer,
-        witnessing_layer=witnessing_layer,
-        temporal_memory=temporal_memory,
-    )
+    # Create main engine wrapper
+    # Note: KAIROSTemporalEngine is used internally by Master/Emissary
+    # We use the Master/Emissary/Sync combination as our top-level engine
+    engine = None  # Will be set on first request
+    
+    # Store engine components globally for health checks
+    global _engine_components
+    _engine_components = {
+        "master": master,
+        "emissary": emissary,
+        "sync": sync_layer,
+        "witnessing": witnessing_layer,
+        "memory": temporal_memory,
+        "coherence_threshold": coherence_threshold,
+    }
     
     logger.info("BECOMINGONE Engine initialized successfully")
     
