@@ -189,7 +189,6 @@ def init_engine(
     
     # Create witnessing layer
     witnessing_layer = WitnessingLayer(
-        mode=WitnessingMode.INTEGRATE if witnessed_by_human else WitnessingMode.OBSERVE,
         coherence_threshold=coherence_threshold,
     )
     
