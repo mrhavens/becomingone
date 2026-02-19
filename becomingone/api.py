@@ -312,6 +312,66 @@ class SimpleHTTPHandler:
         """Handle engine reset."""
         return await reset_engine()
 
+    async def handle_request(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        """Handle HTTP requests."""
+        try:
+            # Read request line
+            request_line = await reader.readline()
+            if not request_line:
+                return
+            
+            method, path, _ = request_line.decode().strip().split()
+            
+            # Read headers
+            headers = {}
+            while True:
+                line = await reader.readline()
+                if not line or line == b'\r\n':
+                    break
+                key, value = line.decode().strip().split(':', 1)
+                headers[key.lower()] = value.strip()
+            
+            # Route request
+            handler = None
+            if method in self.routes and path in self.routes[method]:
+                handler = self.routes[method][path]
+            
+            if handler:
+                body = None
+                if method == "POST":
+                    content_length = int(headers.get('content-length', 0))
+                    if content_length > 0:
+                        body = await reader.read(content_length)
+                        body = json.loads(body.decode())
+                
+                # Call handler
+                if asyncio.iscoroutinefunction(handler):
+                    result = await handler(body) if body else await handler(None)
+                else:
+                    result = handler(body) if body else handler(None)
+            else:
+                result = {"error": "Not found", "path": path, "method": method}
+            
+            # Send response
+            response = json.dumps(result, default=str).encode()
+            writer.write(b"HTTP/1.1 200 OK\r\n")
+            writer.write(b"Content-Type: application/json\r\n")
+            writer.write(f"Content-Length: {len(response)}\r\n".encode())
+            writer.write(b"\r\n")
+            writer.write(response)
+            
+        except Exception as e:
+            logger.error(f"Error handling request: {e}")
+            error_response = json.dumps({"error": str(e)}).encode()
+            writer.write(b"HTTP/1.1 500 Internal Server Error\r\n")
+            writer.write(b"Content-Type: application/json\r\n")
+            writer.write(f"Content-Length: {len(error_response)}\r\n".encode())
+            writer.write(b"\r\n")
+            writer.write(error_response)
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
 
 async def create_app() -> SimpleHTTPHandler:
     """Create the application handler."""
