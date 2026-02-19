@@ -21,7 +21,7 @@ import json
 import logging
 import signal
 import sys
-from argparse import ArgumentParser
+import argparse
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -290,9 +290,9 @@ async def create_app() -> SimpleHTTPHandler:
 
 def parse_args() -> Any:
     """Parse command line arguments."""
-    parser = ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="BECOMINGONE API Server",
-        formatter_class=ArgumentParser,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     
     parser.add_argument(
