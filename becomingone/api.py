@@ -187,9 +187,6 @@ def init_engine(
         dampening=0.995,
     )
     
-    # Create sync layer
-    sync_layer = SyncLayer(sync_config)
-    
     # Create witnessing layer
     witnessing_layer = WitnessingLayer(
         mode=WitnessingMode.HUMAN if witnessed_by_human else WitnessingMode.SELF,
@@ -221,19 +218,30 @@ def init_engine(
         action_delay=0.0,
     )
     
+    # Create master first (without sync_layer)
     master = MasterTransducer(
         config=master_config,
-        sync_layer=sync_layer,
         witnessing_layer=witnessing_layer,
         temporal_memory=temporal_memory,
     )
     
+    # Create emissary first (without sync_layer)
     emissary = EmissaryTransducer(
         config=emissary_config,
-        sync_layer=sync_layer,
         witnessing_layer=witnessing_layer,
         temporal_memory=temporal_memory,
     )
+    
+    # Create sync layer (needs master and emissary)
+    sync_layer = SyncLayer(
+        master=master,
+        emissary=emissary,
+        config=sync_config,
+    )
+    
+    # Now update the master and emissary with sync_layer
+    master.sync_layer = sync_layer
+    emissary.sync_layer = sync_layer
     
     # Create main engine
     engine = KAIROSTemporalEngine(
