@@ -13,9 +13,32 @@ Usage:
 from typing import Any
 from datetime import datetime
 import struct
-import pyaudio
-import cv2
-import numpy as np
+
+# Lazy imports - only load when needed
+_pyaudio = None
+_cv2 = None
+_np = None
+
+def _get_pyaudio():
+    global _pyaudio
+    if _pyaudio is None:
+        import pyaudio as _p
+        _pyaudio = _p
+    return _pyaudio
+
+def _get_cv2():
+    global _cv2
+    if _cv2 is None:
+        import cv2 as _c
+        _cv2 = _c
+    return _cv2
+
+def _get_np():
+    global _np
+    if _np is None:
+        import numpy as _n
+        _np = _n
+    return _np
 
 
 class SpeakerOutput:

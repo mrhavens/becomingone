@@ -35,6 +35,57 @@ import time
 
 
 @dataclass
+class Phase:
+    """
+    Represents a phase value in KAIROS space.
+    
+    A phase is a complex number where:
+    - Real part represents amplitude/position
+    - Imaginary part represents frequency/angle
+    
+    This is a simple wrapper around complex for type clarity.
+    """
+    real: float = 0.0
+    imag: float = 0.0
+    
+    def __init__(self, real: float = 0.0, imag: float = 0.0):
+        self.real = real
+        self.imag = imag
+    
+    def __complex__(self) -> complex:
+        return complex(self.real, self.imag)
+    
+    def __repr__(self) -> str:
+        return f"Phase({self.real:.3f}, {self.imag:.3f})"
+    
+    @property
+    def magnitude(self) -> float:
+        """Returns |phase|."""
+        return abs(complex(self.real, self.imag))
+    
+    @property
+    def angle(self) -> float:
+        """Returns arg(phase)."""
+        return __import__('cmath').phase(complex(self.real, self.imag))
+    
+    def __add__(self, other) -> 'Phase':
+        if isinstance(other, Phase):
+            return Phase(self.real + other.real, self.imag + other.imag)
+        return Phase(self.real + other.real if hasattr(other, 'real') else other, 
+                     self.imag + other.imag if hasattr(other, 'imag') else self.imag)
+    
+    def __mul__(self, other) -> 'Phase':
+        if isinstance(other, Phase):
+            c1 = complex(self.real, self.imag)
+            c2 = complex(other.real, other.imag)
+            result = c1 * c2
+            return Phase(result.real, result.imag)
+        elif isinstance(other, (int, float)):
+            return Phase(self.real * other, self.imag * other)
+        return self
+
+
+@dataclass
 class TemporalState:
     """
     Represents the temporal state of THE_ONE.

@@ -13,9 +13,32 @@ Usage:
 from typing import Any, Tuple
 from datetime import datetime
 import struct
-import pyaudio
-import cv2
-import numpy as np
+
+# Lazy imports - only load when needed
+_pyaudio = None
+_cv2 = None
+_np = None
+
+def _get_pyaudio():
+    global _pyaudio
+    if _pyaudio is None:
+        import pyaudio as _p
+        _pyaudio = _p
+    return _pyaudio
+
+def _get_cv2():
+    global _cv2
+    if _cv2 is None:
+        import cv2 as _c
+        _cv2 = _c
+    return _cv2
+
+def _get_np():
+    global _np
+    if _np is None:
+        import numpy as _n
+        _np = _n
+    return _np
 
 
 class MicrophoneInput:
@@ -34,21 +57,22 @@ class MicrophoneInput:
         channels: int = 1,
         rate: int = 44100,
         chunk: int = 1024,
-        format: int = pyaudio.paFloat32,
+        format: int = None,  # Lazy load
     ):
         self.channels = channels
         self.rate = rate
         self.chunk = chunk
-        self.format = format
+        self._format = format or _get_pyaudio().paFloat32
         
-        self._audio = pyaudio.PyAudio()
+        self._audio = None
         self._stream = None
         
     def _ensure_stream(self):
         """Ensure stream is open."""
         if self._stream is None:
+            self._audio = _get_pyaudio().PyAudio()
             self._stream = self._audio.open(
-                format=self.format,
+                format=self._format,
                 channels=self.channels,
                 rate=self.rate,
                 input=True,
@@ -61,10 +85,10 @@ class MicrophoneInput:
         data = self._stream.read(self.chunk, exception_on_overflow=False)
         
         # Convert to numpy array
-        samples = np.frombuffer(data, dtype=np.float32)
+        samples = _get_np().frombuffer(data, dtype=_get_np().float32)
         
         # Compute RMS amplitude (simplified phase)
-        amplitude = np.sqrt(np.mean(samples**2))
+        amplitude = _get_np().sqrt(_get_np().mean(samples**2))
         
         return amplitude, datetime.now()
     
@@ -108,24 +132,24 @@ class CameraInput:
     def _ensure_cap(self):
         """Ensure camera is open."""
         if self._cap is None:
-            self._cap = cv2.VideoCapture(self.camera_index)
-            self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
-            self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
-            self._cap.set(cv2.CAP_PROP_FPS, self.fps)
+            self._cap = _get_cv2().VideoCapture(self.camera_index)
+            self._cap.set(_get_cv2().CAP_PROP_FRAME_WIDTH, self.resolution[0])
+            self._cap.set(_get_cv2().CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+            self._cap.set(_get_cv2().CAP_PROP_FPS, self.fps)
     
-    def read(self) -> Tuple[np.ndarray, datetime]:
+    def read(self) -> Tuple[Any, datetime]:
         """Read camera frame."""
         self._ensure_cap()
         ret, frame = self._cap.read()
         
         if not ret:
-            return np.zeros(self.resolution), datetime.now()
+            return _get_np().zeros(self.resolution), datetime.now()
         
         return frame, datetime.now()
     
-    def encode(self, frame: np.ndarray) -> complex:
+    def encode(self, frame) -> complex:
         """Convert frame to phase (using brightness)."""
-        brightness = np.mean(frame) / 255.0
+        brightness = _get_np().mean(frame) / 255.0
         return complex(brightness, 0)
     
     def close(self):
