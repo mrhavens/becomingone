@@ -39,6 +39,8 @@ from becomingone import (
     WitnessingMode,
     TemporalMemory,
 )
+from becomingone.transducers.master import MasterConfig
+from becomingone.transducers.emissary import EmissaryConfig
 
 # Configure logging
 logging.basicConfig(
@@ -179,10 +181,10 @@ def init_engine(
     
     # Create sync configuration
     sync_config = SyncConfig(
-        master_tau=master_tau,
-        emissary_tau=emissary_tau,
-        sync_tau=sync_tau,
-        coherence_threshold=coherence_threshold,
+        phase_threshold=0.1,
+        collapse_threshold=coherence_threshold,
+        mesh_enabled=False,
+        dampening=0.995,
     )
     
     # Create sync layer
