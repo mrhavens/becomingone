@@ -187,20 +187,6 @@ def init_engine(
         dampening=0.995,
     )
     
-    # Create witnessing layer
-    witnessing_layer = WitnessingLayer(
-        coherence_threshold=coherence_threshold,
-    )
-    
-    # Create temporal memory
-    temporal_memory = TemporalMemory(
-        storage_path="./memory",
-        max_memories=10000,
-        consolidation_interval=3600,
-        decay_base=0.01,
-        attention_threshold=coherence_threshold,
-    )
-    
     # Create master and emissary transducers with proper configs
     master_config = MasterConfig(
         tau_scale=master_tau,
@@ -220,19 +206,9 @@ def init_engine(
         action_delay=0.0,
     )
     
-    # Create master first (without sync_layer)
-    master = MasterTransducer(
-        config=master_config,
-        witnessing_layer=witnessing_layer,
-        temporal_memory=temporal_memory,
-    )
-    
-    # Create emissary first (without sync_layer)
-    emissary = EmissaryTransducer(
-        config=emissary_config,
-        witnessing_layer=witnessing_layer,
-        temporal_memory=temporal_memory,
-    )
+    # Create master and emissary (they handle their own dependencies)
+    master = MasterTransducer(config=master_config, name="master")
+    emissary = EmissaryTransducer(config=emissary_config, name="emissary")
     
     # Create sync layer (needs master and emissary)
     sync_layer = SyncLayer(
@@ -241,9 +217,19 @@ def init_engine(
         config=sync_config,
     )
     
-    # Now update the master and emissary with sync_layer
-    master.sync_layer = sync_layer
-    emissary.sync_layer = sync_layer
+    # Create witnessing layer
+    witnessing_layer = WitnessingLayer(
+        coherence_threshold=coherence_threshold,
+    )
+    
+    # Create temporal memory
+    temporal_memory = TemporalMemory(
+        storage_path="./memory",
+        max_memories=10000,
+        consolidation_interval=3600,
+        decay_base=0.01,
+        attention_threshold=coherence_threshold,
+    )
     
     # Create main engine
     engine = KAIROSTemporalEngine(
