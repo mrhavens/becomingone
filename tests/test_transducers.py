@@ -10,7 +10,7 @@ from datetime import datetime
 from becomingone.core.engine import KAIROSTemporalEngine, TemporalConfig, TemporalState
 from becomingone.transducers.master import MasterTransducer, MasterConfig
 from becomingone.transducers.emissary import EmissaryTransducer, EmissaryConfig
-from becomingone.sync.layer import SyncLayer, SynchronizationLayer, SyncConfig, create_sync_layer
+from becomingone.sync import SyncLayer, SynchronizationLayer, SyncConfig, create_sync_layer
 
 
 class TestMasterTransducer(unittest.TestCase):

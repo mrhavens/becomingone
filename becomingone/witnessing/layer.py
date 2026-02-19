@@ -62,6 +62,7 @@ class WitnessState:
     last_observed: Optional[datetime] = None
     witness_function: Optional[Callable] = None
     meta_state: Dict[str, Any] = field(default_factory=dict)
+    reflection_history: list = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
