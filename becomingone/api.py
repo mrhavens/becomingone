@@ -202,16 +202,34 @@ def init_engine(
         max_signatures=10000,
     )
     
-    # Create master and emissary transducers
+    # Create master and emissary transducers with proper configs
+    master_config = MasterConfig(
+        tau_scale=master_tau,
+        tau_max=3600.0,
+        omega=2.0 * 3.14159,
+        coherence_threshold=coherence_threshold,
+        witness_interval=0.1,
+        memory_enabled=True,
+    )
+    
+    emissary_config = EmissaryConfig(
+        tau_scale=emissary_tau,
+        tau_max=1.0,
+        omega=2.0 * 3.14159 * 10,
+        coherence_threshold=coherence_threshold * 0.8,
+        witness_interval=0.001,
+        action_delay=0.0,
+    )
+    
     master = MasterTransducer(
-        tau=master_tau,
+        config=master_config,
         sync_layer=sync_layer,
         witnessing_layer=witnessing_layer,
         temporal_memory=temporal_memory,
     )
     
     emissary = EmissaryTransducer(
-        tau=emissary_tau,
+        config=emissary_config,
         sync_layer=sync_layer,
         witnessing_layer=witnessing_layer,
         temporal_memory=temporal_memory,
