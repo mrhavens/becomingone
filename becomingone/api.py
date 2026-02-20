@@ -77,7 +77,7 @@ async def health_check() -> Dict[str, Any]:
     # Get current coherence values (use property, not method)
     master_coherence = master.coherence if master else None
     emissary_coherence = emissary.coherence if emissary else None
-    sync_coherence = sync.coherence if sync else None
+    sync_coherence = sync.synchronized_coherence if sync else None
     
     return {
         "status": "ready",
@@ -144,7 +144,7 @@ async def get_coherence() -> Dict[str, Any]:
     sync = _engine_components.get("sync")
     
     return {
-        "coherence": float(sync.coherence) if sync else None,
+        "coherence": float(sync.synchronized_coherence) if sync else None,
         "master": {
             "coherence": float(master.coherence) if master else None,
             "phase": master._engine._phases[-100:] if master and hasattr(master, '_engine') else None,
@@ -154,7 +154,7 @@ async def get_coherence() -> Dict[str, Any]:
             "phase": emissary._engine._phases[-100:] if emissary and hasattr(emissary, '_engine') else None,
         },
         "sync": {
-            "coherence": float(sync.coherence) if sync else None,
+            "coherence": float(sync.synchronized_coherence) if sync else None,
             "aligned": sync.aligned if sync else None,
         },
         "timestamp": datetime.utcnow().isoformat(),
