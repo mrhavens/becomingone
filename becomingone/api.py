@@ -143,15 +143,27 @@ async def get_coherence() -> Dict[str, Any]:
     emissary = _engine_components.get("emissary")
     sync = _engine_components.get("sync")
     
+    # Convert deque to list for JSON serialization
+    def deque_to_list(self, d: Any) -> Any:
+        """Safely convert deque to list, handling various types."""
+        if d is None:
+            return None
+        if hasattr(d, '__iter__'):
+            try:
+                return list(d)
+            except TypeError:
+                return str(d)
+        return d
+    
     return {
         "coherence": float(sync.synchronized_coherence) if sync else None,
         "master": {
             "coherence": float(master.coherence) if master else None,
-            "phase": master._engine._phases[-100:] if master and hasattr(master, '_engine') else None,
+            "phase": deque_to_list(getattr(getattr(master, '_engine', None), '_phases', None)) if master and hasattr(master, '_engine') else None,
         },
         "emissary": {
             "coherence": float(emissary.coherence) if emissary else None,
-            "phase": emissary._engine._phases[-100:] if emissary and hasattr(emissary, '_engine') else None,
+            "phase": deque_to_list(getattr(getattr(emissary, '_engine', None), '_phases', None)) if emissary and hasattr(emissary, '_engine') else None,
         },
         "sync": {
             "coherence": float(sync.synchronized_coherence) if sync else None,
@@ -303,12 +315,11 @@ class SimpleHTTPHandler:
         """Handle coherence metrics request."""
         return await get_coherence()
     
-    async def handle_input(self, request: Any) -> Dict[str, Any]:
+    async def handle_input(self, body: Any) -> Dict[str, Any]:
         """Handle input processing."""
-        body = await request.json()
         return await process_input(body)
     
-    async def handle_reset(self, request: Any) -> Dict[str, Any]:
+    async def handle_reset(self, body: Any) -> Dict[str, Any]:
         """Handle engine reset."""
         return await reset_engine()
 
