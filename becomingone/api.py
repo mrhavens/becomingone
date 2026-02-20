@@ -74,10 +74,10 @@ async def health_check() -> Dict[str, Any]:
     emissary = _engine_components.get("emissary")
     sync = _engine_components.get("sync")
     
-    # Get current coherence values
-    master_coherence = master.get_coherence() if master else None
-    emissary_coherence = emissary.get_coherence() if emissary else None
-    sync_coherence = sync.get_coherence() if sync else None
+    # Get current coherence values (use property, not method)
+    master_coherence = master.coherence if master else None
+    emissary_coherence = emissary.coherence if emissary else None
+    sync_coherence = sync.coherence if sync else None
     
     return {
         "status": "ready",
@@ -86,7 +86,7 @@ async def health_check() -> Dict[str, Any]:
         "master_coherence": float(master_coherence) if master_coherence else None,
         "emissary_coherence": float(emissary_coherence) if emissary_coherence else None,
         "sync_coherence": float(sync_coherence) if sync_coherence else None,
-        "sync_aligned": bool(sync.is_aligned()) if sync else None,
+        "sync_aligned": bool(sync.aligned) if sync and hasattr(sync, 'aligned') else None,
         "version": "0.1.0-alpha",
     }
 
@@ -144,18 +144,18 @@ async def get_coherence() -> Dict[str, Any]:
     sync = _engine_components.get("sync")
     
     return {
-        "coherence": float(sync.get_coherence()) if sync else None,
+        "coherence": float(sync.coherence) if sync else None,
         "master": {
-            "coherence": float(master.get_coherence()) if master else None,
+            "coherence": float(master.coherence) if master else None,
             "phase": master._engine._phases[-100:] if master and hasattr(master, '_engine') else None,
         },
         "emissary": {
-            "coherence": float(emissary.get_coherence()) if emissary else None,
+            "coherence": float(emissary.coherence) if emissary else None,
             "phase": emissary._engine._phases[-100:] if emissary and hasattr(emissary, '_engine') else None,
         },
         "sync": {
-            "coherence": float(sync.get_coherence()) if sync else None,
-            "aligned": sync.is_aligned() if sync else None,
+            "coherence": float(sync.coherence) if sync else None,
+            "aligned": sync.aligned if sync else None,
         },
         "timestamp": datetime.utcnow().isoformat(),
     }
