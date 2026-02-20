@@ -24,24 +24,26 @@ async def rigorous_test():
     # Run both in parallel
     print("⚡ Running both pathways in parallel...\n")
     
-    master_task = master.respond(prompt)
-    code_task = emissary.respond("Write a Python neural network from scratch with backpropagation")
+    master_result = await master.respond(prompt)
+    code_result = await emissary.respond("Write a Python neural network from scratch with backpropagation")
     
-    master_result, code_result = await asyncio.gather(master_task, code_task)
+    # Check for errors
+    master_response = master_result.get('response', 'ERROR: ' + str(master_result))
+    code_response = code_result.get('response', 'ERROR: ' + str(code_result))
     
     # Display Master
     print("=" * 70)
     print("🧠 MASTER PATHWAY (llama3.1:8b - Soulful)")
     print("-" * 70)
-    print(master_result['response'][:800])
-    print(f"\n   [Model: {master_result['model']}]")
+    print(master_response[:800])
+    print(f"\n   [Model: {master_result.get('model', 'unknown')}]")
     
     # Display Emissary
     print("\n" + "=" * 70)
     print("⚡ EMISSARY PATHWAY (deepseek-coder-v2:lite - Coder)")
     print("-" * 70)
-    print(code_result['response'][:800])
-    print(f"\n   [Model: {code_result['model']}]")
+    print(code_response[:800])
+    print(f"\n   [Model: {code_result.get('model', 'unknown')}]")
     
     # UNIFIED OUTPUT (Sync)
     print("\n" + "=" * 70)
@@ -51,10 +53,10 @@ async def rigorous_test():
     unified = f"""# Neural Networks: From Theory to Code
 
 ## The Theory (Master's Understanding):
-{master_result['response'][:500]}...
+{master_response[:500]}...
 
 ## The Implementation (Emissary's Code):
-{code_result['response'][:500]}...
+{code_response[:500]}...
 
 ---
 
