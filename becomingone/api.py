@@ -115,11 +115,11 @@ async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
     elif input_type == "tokens":
         # Direct token input (for LLM integration)
         tokens = input_data.get("tokens", [])
-        result = await master.process(np.array(tokens, dtype=np.float32))
+        result = master.integrate(np.array(tokens, dtype=np.float32))
     elif input_type == "phase":
         # Direct phase input
         phases = input_data.get("phases", [])
-        result = await master.process_phase(np.array(phases, dtype=np.float32))
+        result = master.integrate(np.array(phases, dtype=np.float32))
     else:
         return {"error": f"Unknown input type: {input_type}"}
     
