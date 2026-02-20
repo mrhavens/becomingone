@@ -126,8 +126,8 @@ async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "status": "processed",
         "coherence": float(result.coherence) if result.coherence else None,
-        "phase": result.phase.tolist() if result.phase is not None else None,
-        "collapsed": result.collapsed,
+        "phase": list(result.phase) if hasattr(result, 'phase') and result.phase is not None else None,
+        "collapsed": result.collapsed if hasattr(result, 'collapsed') else None,
         "timestamp": datetime.utcnow().isoformat(),
     }
 
