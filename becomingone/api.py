@@ -144,7 +144,7 @@ async def get_coherence() -> Dict[str, Any]:
     sync = _engine_components.get("sync")
     
     # Convert deque to list for JSON serialization
-    def deque_to_list(self, d: Any) -> Any:
+    def deque_to_list(d: Any) -> Any:
         """Safely convert deque to list, handling various types."""
         if d is None:
             return None
