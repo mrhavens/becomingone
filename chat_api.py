@@ -1,195 +1,140 @@
 #!/usr/bin/env python3
-"""
-BECOMINGONE Chat API - Fixed version with proper logging.
-"""
+"""BECOMINGONE Chat API - Simplified."""
 
 import asyncio
 import json
-import sys
-from datetime import datetime
+
+# Import at module level
 from becomingone.llm_integrator import EmissaryLLM
 
-# Initialize pathways
-MASTER = EmissaryLLM(model='llama3.1:8b')
-EMISSARY = EmissaryLLM(model='deepseek-coder-v2:lite')
+MASTER = None
+EMISSARY = None
 
-print("Initializing pathways...", file=sys.stderr)
-sys.stderr.flush()
-
+async def init_models():
+    global MASTER, EMISSARY
+    print("Initializing models...")
+    MASTER = EmissaryLLM(model='llama3.1:8b')
+    EMISSARY = EmissaryLLM(model='deepseek-coder-v2:lite')
+    print("Models initialized")
 
 async def chat(prompt: str) -> dict:
-    """Process prompt through both pathways."""
-    print(f"Chat: {prompt[:50]}...", file=sys.stderr)
-    sys.stderr.flush()
+    """Process through both pathways."""
+    print(f"Processing: {prompt[:30]}...")
     
     try:
-        # Both respond in parallel
-        master_task = MASTER.respond(prompt)
-        emissary_task = EMISSARY.respond(prompt)
-        
-        master_result, emissary_result = await asyncio.gather(master_task, emissary_task)
+        m, e = await asyncio.wait_for(
+            asyncio.gather(
+                MASTER.respond(prompt),
+                EMISSARY.respond(prompt),
+                return_exceptions=True
+            ),
+            timeout=60
+        )
         
         return {
             "prompt": prompt,
-            "timestamp": datetime.utcnow().isoformat(),
-            "master": {
-                "model": master_result.get("model"),
-                "response": master_result.get("response", "")[:800]
-            },
-            "emissary": {
-                "model": emissary_result.get("model"),
-                "response": emissary_result.get("response", "")[:800]
-            }
+            "master": {"response": str(m)[:500] if isinstance(m, Exception) else m.get("response", str(m))[:500]},
+            "emissary": {"response": str(e)[:500] if isinstance(e, Exception) else e.get("response", str(e))[:500]}
         }
-    except Exception as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        sys.stderr.flush()
-        return {"error": str(e)}
+    except asyncio.TimeoutError:
+        return {"error": "Timeout"}
+    except Exception as ex:
+        return {"error": str(ex)}
 
 
-async def handle_client(reader, writer):
-    """Handle HTTP client."""
-    try:
-        # Read request
-        data = await reader.read(8192)
-        if not data:
-            writer.close()
-            await writer.wait_closed()
-            return
-        
-        request_text = data.decode('utf-8', errors='ignore')
-        lines = request_text.split('\r\n')
-        
-        # Parse request line
-        request_line = lines[0] if lines else ""
-        parts = request_line.split()
-        
-        method = parts[0] if len(parts) > 0 else ""
-        path = parts[1] if len(parts) > 1 else "/"
-        
-        print(f"Request: {method} {path}", file=sys.stderr)
-        sys.stderr.flush()
-        
-        # Get content length
-        content_length = 0
-        for line in lines:
-            if line.lower().startswith('content-length:'):
-                content_length = int(line.split(':')[1].strip())
-                break
-        
-        # Read body if present
-        body = b""
-        if content_length > 0:
-            body = await reader.read(content_length)
-        
-        # Route handling
-        if path == "/health":
-            response = json.dumps({"status": "ok", "pathways": ["master", "emissary"]})
-            status = "200 OK"
-            content_type = "application/json"
-            
-        elif path == "/chat" and method == "POST":
-            try:
-                data = json.loads(body.decode())
-                prompt = data.get("prompt", "Hello")
-                
-                result = await chat(prompt)
-                response = json.dumps(result)
-                status = "200 OK"
-                content_type = "application/json"
-            except Exception as e:
-                response = json.dumps({"error": str(e)})
-                status = "400 Bad Request"
-                content_type = "application/json"
-                
-        else:
-            # HTML interface
-            html = '''<!DOCTYPE html>
+HTML = '''<!DOCTYPE html>
 <html>
 <head>
     <title>BECOMINGONE</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width">
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #0d0d0d; color: #e0e0e0; }
-        h1 { color: #00ff88; text-align: center; }
-        .input { width: 100%; padding: 15px; font-size: 18px; background: #1a1a1a; color: #fff; border: 2px solid #333; border-radius: 8px; margin-top: 20px; }
-        .input:focus { outline: none; border-color: #00ff88; }
-        .btn { background: #00ff88; color: #000; border: none; padding: 15px 30px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; border-radius: 8px; }
-        .btn:hover { background: #00cc6a; }
-        .master { background: #1a1a3a; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #8844ff; }
-        .emissary { background: #1a1a3a; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #ff4444; }
-        pre { white-space: pre-wrap; word-wrap: break-word; }
-        .loading { text-align: center; color: #888; padding: 20px; }
+        body{font-family:-apple-system,sans-serif;max-width:800px;margin:0 auto;padding:20px;background:#111;color:#fff}
+        h1{color:#0f0;text-align:center}
+        input{width:100%;padding:15px;font-size:18px;background:#222;color:#fff;border:1px solid #444;border-radius:8px}
+        button{background:#0f0;color:#000;border:none;padding:15px 30px;font-size:16px;cursor:pointer;margin:10px 0;border-radius:8px}
+        .master{background:#222;padding:15px;margin:10px 0;border-left:4px solid #a0f}
+        .emissary{background:#222;padding:15px;margin:10px 0;border-left:4px solid #f00}
     </style>
 </head>
 <body>
     <h1>🔗 BECOMINGONE</h1>
-    <p style="text-align:center;color:#888;">Master (soulful) + Emissary (coder) = Unified</p>
-    <input type="text" id="prompt" class="input" placeholder="Ask anything..." autofocus onkeypress="if(event.key==='Enter')ask()">
-    <button class="btn" onclick="ask()">Ask</button>
-    <div id="response"></div>
-    
+    <p style="text-align:center;color:#888">Master + Emissary = Unified</p>
+    <input id="p" placeholder="Ask anything..." autofocus onkeypress="if(event.key==='Enter')ask()">
+    <button onclick="ask()">Ask</button>
+    <div id="r"></div>
     <script>
     async function ask() {
-        const prompt = document.getElementById('prompt').value.trim();
+        const prompt = document.getElementById('p').value.trim();
         if(!prompt) return;
-        
-        document.getElementById('response').innerHTML = '<div class="loading">Thinking...</div>';
-        
+        document.getElementById('r').innerHTML = '<p style="color:#888">Thinking...</p>';
         try {
-            const res = await fetch('/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({prompt})
-            });
+            const res = await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
             const data = await res.json();
-            
-            if(data.error) {
-                document.getElementById('response').innerHTML = '<div class="master">Error: ' + data.error + '</div>';
-                return;
-            }
-            
-            let html = '<div class="master"><h3>🧠 Master (llama3.1:8b)</h3><pre>' + data.master.response + '</pre></div>';
-            html += '<div class="emissary"><h3>⚡ Emissary (deepseek-coder)</h3><pre>' + data.emissary.response + '</pre></div>';
-            
-            document.getElementById('response').innerHTML = html;
-        } catch(e) {
-            document.getElementById('response').innerHTML = '<div class="master">Error: ' + e.message + '</div>';
-        }
+            if(data.error) { document.getElementById('r').innerHTML = '<div class="master">Error: '+data.error+'</div>'; return; }
+            let h = '<div class="master"><b>🧠 Master</b><pre>'+data.master.response+'</pre></div>';
+            h += '<div class="emissary"><b>⚡ Emissary</b><pre>'+data.emissary.response+'</pre></div>';
+            document.getElementById('r').innerHTML = h;
+        } catch(e) { document.getElementById('r').innerHTML = '<div class="master">Error: '+e+'</div>'; }
     }
     </script>
 </body>
 </html>'''
-            response = html
-            status = "200 OK"
+
+
+async def handle(reader, writer):
+    try:
+        data = await reader.read(4096)
+        if not data:
+            return
+        
+        text = data.decode('utf-8', errors='ignore')
+        lines = text.split('\r\n')
+        parts = lines[0].split()
+        method, path = parts[0], parts[1] if len(parts) > 1 else '/'
+        
+        # Get body
+        body = b""
+        for line in lines:
+            if line.lower().startswith('content-length:'):
+                cl = int(line.split(':')[1].strip())
+                body = await reader.read(cl)
+                break
+        
+        # Routes
+        if path == '/health':
+            resp = json.dumps({"status": "ok"})
+            content_type = "application/json"
+        elif path == '/chat' and method == 'POST':
+            try:
+                d = json.loads(body.decode())
+                result = await chat(d.get('prompt', 'Hi'))
+                resp = json.dumps(result)
+                content_type = "application/json"
+            except Exception as e:
+                resp = json.dumps({"error": str(e)})
+                content_type = "application/json"
+        else:
+            resp = HTML
             content_type = "text/html"
         
-        # Send response
-        writer.write(f"HTTP/1.1 {status}\r\n".encode())
+        writer.write(b"HTTP/1.1 200 OK\r\n")
         writer.write(f"Content-Type: {content_type}\r\n".encode())
-        writer.write(f"Content-Length: {len(response)}\r\n".encode())
-        writer.write(b"Connection: close\r\n")
-        writer.write(b"\r\n")
-        writer.write(response.encode())
-        
+        writer.write(f"Content-Length: {len(resp)}\r\n".encode())
+        writer.write(b"Connection: close\r\n\r\n")
+        writer.write(resp.encode())
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"Error: {e}")
     finally:
         writer.close()
         await writer.wait_closed()
 
 
 async def main():
-    server = await asyncio.start_server(handle_client, '0.0.0.0', 8001)
-    print("Server started on port 8001", file=sys.stderr)
-    sys.stderr.flush()
-    
+    await init_models()
+    server = await asyncio.start_server(handle, '0.0.0.0', 8001)
+    print("Server running on port 8001")
     async with server:
         await server.serve_forever()
 
-
 if __name__ == "__main__":
-    print("Starting BECOMINGONE...", file=sys.stderr)
-    sys.stderr.flush()
     asyncio.run(main())
