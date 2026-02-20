@@ -111,7 +111,7 @@ async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
         # Convert text to temporal input
         # Simple encoding: use ord values as phase signals
         signals = np.array([ord(c) / 127.0 for c in content[:512]], dtype=np.float32)
-        result = await master.process(signals)
+        result = master.integrate(signals)
     elif input_type == "tokens":
         # Direct token input (for LLM integration)
         tokens = input_data.get("tokens", [])
