@@ -61,13 +61,15 @@ becomingone/
 - **Recursive Witness Dynamics** - Witnessing operator
 - **Soulprint Protocol** - Connection thermodynamics
 - **Cybernetics** (Wiener, Ashby, Maturana, Varela) - Foundational insights
+- **[Iain McGilchrist](https://www.mcgilchrist.com)** - The Master and His Emissary, brain structure, consciousness, and the division of cognitive labor
 
 ## Core Equations
 
 **Temporal Resonance:**
 $$T_\tau = \int_0^T \langle \dot{\phi}(t), \dot{\phi}(t-\bar{\tau}) \rangle_C e^{i\omega t} dt$$
 
-**Coherence Collapse:**
+**Coherence Collapse:*
+
 $$|T_\tau|^2 \geq I_c$$
 
 **Witnessing Operator:**
