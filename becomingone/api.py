@@ -111,15 +111,15 @@ async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
         # Convert text to temporal input
         # Simple encoding: use ord values as phase signals
         signals = np.array([ord(c) / 127.0 for c in content[:512]], dtype=np.float32)
-        result = master.integrate(signals)
+        result = await master.integrate(signals)
     elif input_type == "tokens":
         # Direct token input (for LLM integration)
         tokens = input_data.get("tokens", [])
-        result = master.integrate(np.array(tokens, dtype=np.float32))
+        result = await master.integrate(np.array(tokens, dtype=np.float32))
     elif input_type == "phase":
         # Direct phase input
         phases = input_data.get("phases", [])
-        result = master.integrate(np.array(phases, dtype=np.float32))
+        result = await master.integrate(np.array(phases, dtype=np.float32))
     else:
         return {"error": f"Unknown input type: {input_type}"}
     
