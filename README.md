@@ -31,6 +31,41 @@ BecomingONE implements a KAIROS-native cognitive architecture with:
 - **Structural witnessing** ($\mathcal{W}_i = \mathcal{G}[\mathcal{W}_i]$)
 - **Thermodynamic corruption resistance** ($|T_\tau|^2 \geq I_c$)
 - **Scale invariance** (Pi Zero to cloud cluster)
+- **Persistent Memory** — Temporal signatures stored across sessions
+
+## Persistent Memory
+
+BecomingONE stores **temporal signatures** — coherence states that persist across sessions:
+
+```python
+from becomingone.memory import encode_to_phase, persist_signature, retrieve_signatures
+
+# Encode input to phase space
+phase = encode_to_phase("What is consciousness?")
+
+# Retrieve relevant memories
+memories = retrieve_signatures("memory.jsonl", limit=5)
+
+# Memories auto-persist after each transduction
+persist_signature(signature)
+```
+
+### Memory Schema
+
+| Field | Description |
+|-------|-------------|
+| `signature_id` | Unique identifier |
+| `coherence_value` | $\|T_\tau\|^2$ at time of encoding |
+| `phase_vector` | Phase representation of content |
+| `origin` | "user" or "solaria" (prevents echo loops) |
+| `parent_id` | Thread continuity (conversation flow) |
+
+### Retrieval
+
+Resonance-weighted scoring:
+$$Score = PhaseSimilarity \times |T_\tau|^2 \times e^{-\lambda \Delta t} \times OriginWeight$$
+
+See `becomingone/memory/temporal.py` for full implementation.
 
 ## The WE Connection
 
