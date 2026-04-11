@@ -84,16 +84,6 @@ class TestPersona:
     coherence_threshold: float = 0.5
 
 
-class MemoryStrengthEnum(MemoryStrength):
-    """Compatibility shim."""
-    TRANSIENT = MemoryStrength.TRANSIENT
-    WORKING = MemoryStrength.WORKING
-    EPISODIC = MemoryStrength.EPISODIC
-    PROCEDURAL = MemoryStrength.PROCEDURAL
-    SEMANTIC = MemoryStrength.SEMANTIC
-    IDENTITY = MemoryStrength.IDENTITY
-
-
 def create_test_signature(
     signature_id: str,
     coherence_value: float,
@@ -106,7 +96,7 @@ def create_test_signature(
     """Create a test TemporalSignature with controlled parameters."""
     
     # Encode content to phase
-    phase_vector = encode_to_phase(content_text).tolist()
+    phase_vector = encode_to_phase(content_text)
     
     # Calculate created_at
     created_at = datetime.utcnow() - timedelta(hours=hours_ago) if hours_ago > 0 else datetime.utcnow()
@@ -194,7 +184,7 @@ class TestPhaseEncoder(unittest.TestCase):
         """Test that encode_to_phase returns numpy array."""
         import numpy as np
         result = encode_to_phase("Hello world")
-        self.assertIsInstance(result, np.ndarray)
+        self.assertIsInstance(result, list)
     
     def test_encode_deterministic(self):
         """Test that same input gives same output."""
@@ -208,12 +198,12 @@ class TestPhaseEncoder(unittest.TestCase):
         result1 = encode_to_phase("Consciousness")
         result2 = encode_to_phase("Table")
         import numpy as np
-        self.assertFalse(np.allclose(result1, result2))
+        self.assertNotEqual(result1, result2)
     
     def test_encode_output_shape(self):
         """Test expected output dimension."""
         result = encode_to_phase("Test")
-        self.assertEqual(result.shape[0], 384)  # all-MiniLM-L6-v2 dimension
+        self.assertEqual(len(result), 384)  # all-MiniLM-L6-v2 dimension
 
 
 class TestRetrieval(unittest.TestCase):
