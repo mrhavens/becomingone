@@ -57,6 +57,8 @@ class TemporalSignature:
         frequency_modes: Active frequency components
         context_hash: Hash of associated context/information
         strength: Memory strength classification
+        origin: Source of this memory (user, solaria, etc.)
+        parent_id: Parent signature ID for链条 tracking
         created_at: When this memory was formed
         last_accessed: When this memory was last recalled
         access_count: Number of times recalled
@@ -71,6 +73,8 @@ class TemporalSignature:
     strength: MemoryStrength
     created_at: datetime
     last_accessed: datetime
+    origin: str = "user"  # Added: source of memory
+    parent_id: Optional[str] = None  # Added: parent signature for链条
     access_count: int = 0
     decay_rate: float = 0.01
     content: Optional[Dict[str, Any]] = None
@@ -84,6 +88,8 @@ class TemporalSignature:
             "frequency_modes": self.frequency_modes,
             "context_hash": self.context_hash,
             "strength": self.strength.value,
+            "origin": self.origin,
+            "parent_id": self.parent_id,
             "created_at": self.created_at.isoformat(),
             "last_accessed": self.last_accessed.isoformat(),
             "access_count": self.access_count,
@@ -101,6 +107,8 @@ class TemporalSignature:
             frequency_modes=data["frequency_modes"],
             context_hash=data["context_hash"],
             strength=MemoryStrength(data["strength"]),
+            origin=data.get("origin", "user"),
+            parent_id=data.get("parent_id"),
             created_at=datetime.fromisoformat(data["created_at"]),
             last_accessed=datetime.fromisoformat(data["last_accessed"]),
             access_count=data["access_count"],
@@ -221,7 +229,9 @@ class TemporalMemory:
         self,
         temporal_state: TemporalState,
         context: Optional[Dict[str, Any]] = None,
-        force_attention: bool = False
+        force_attention: bool = False,
+        origin: str = "user",
+        parent_id: Optional[str] = None
     ) -> TemporalSignature:
         """
         Encode a temporal state into a persistent memory.
@@ -233,6 +243,8 @@ class TemporalMemory:
             temporal_state: The KAIROS temporal state to encode
             context: Associated semantic/contextual information
             force_attention: Force encoding even below threshold
+            origin: Source of this memory (user, solaria, etc.)
+            parent_id: Parent signature ID for链条 tracking
             
         Returns:
             The created TemporalSignature
@@ -269,6 +281,8 @@ class TemporalMemory:
             frequency_modes=list(temporal_state.frequency_modes) if temporal_state.frequency_modes else [],
             context_hash=self._hash_context(context),
             strength=strength,
+            origin=origin,
+            parent_id=parent_id,
             created_at=datetime.utcnow(),
             last_accessed=datetime.utcnow(),
             access_count=0,
@@ -717,3 +731,171 @@ def create_temporal_memory(
         memory.bind_engine(bind_to)
     
     return memory
+
+
+# =============================================================================
+# Step 1: Log-Only Persistence (JSONL)
+# =============================================================================
+
+def persist_signature(signature: TemporalSignature, filepath: str = "memory.jsonl") -> None:
+    """
+    Append signature to append-only JSONL file.
+    
+    Fire-and-forget: write after transduction completes.
+    
+    Args:
+        signature: TemporalSignature to persist
+        filepath: Path to JSONL file
+    """
+    with open(filepath, "a") as f:
+        f.write(json.dumps(signature.to_dict()) + "\n")
+
+
+# =============================================================================
+# Step 2: Phase Encoder (Sentence Transformers)
+# =============================================================================
+
+_model = None
+
+def get_phase_model():
+    """Get or create the sentence transformer model."""
+    global _model
+    if _model is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            _model = SentenceTransformer('all-MiniLM-L6-v2')
+        except ImportError:
+            _model = None
+    return _model
+
+
+def encode_to_phase(text: str) -> List[float]:
+    """
+    Encode text to phase vector using sentence transformer.
+    
+    Args:
+        text: Input text to encode
+        
+    Returns:
+        Phase vector (list of floats)
+    """
+    import numpy as np
+    
+    model = get_phase_model()
+    if model is None:
+        # Fallback: return zeros if model not available
+        return [0.0] * 384
+    
+    embedding = model.encode(text)
+    embedding = embedding / np.linalg.norm(embedding)
+    if np.allclose(embedding, 0):
+        return [0.0] * len(embedding)
+    
+    # Map to phase space using arctan2
+    phases = np.arctan2(embedding, 1.0)  # Maps to [-π, π]
+    return phases.tolist()
+
+
+# =============================================================================
+# Step 3: Retrieval Functions
+# =============================================================================
+
+def phase_distance(a: List[float], b: List[float]) -> float:
+    """
+    Calculate circular distance between phase vectors.
+    
+    Args:
+        a: First phase vector
+        b: Second phase vector
+        
+    Returns:
+        Circular distance (0 to π * dim)
+    """
+    import numpy as np
+    
+    a = np.array(a)
+    b = np.array(b)
+    
+    diff = np.abs(a - b)
+    return float(np.minimum(diff, 2*np.pi - diff).sum())
+
+
+def retrieve_signatures(filepath: str = "memory.jsonl", limit: int = 100) -> List[TemporalSignature]:
+    """
+    Load signatures from JSONL file.
+    
+    Args:
+        filepath: Path to JSONL file
+        limit: Maximum number of signatures to load
+        
+    Returns:
+        List of TemporalSignatures
+    """
+    if not os.path.exists(filepath):
+        return []
+    
+    signatures = []
+    with open(filepath, "r") as f:
+        for line in f:
+            if limit and len(signatures) >= limit:
+                break
+            try:
+                data = json.loads(line.strip())
+                signatures.append(TemporalSignature.from_dict(data))
+            except json.JSONDecodeError:
+                continue
+    
+    return signatures
+
+
+def compute_resonance_score(
+    signature: TemporalSignature, 
+    query_phase: List[float], 
+    current_coherence: float,
+    now: Optional[datetime] = None
+) -> float:
+    """
+    Compute resonance score for a signature.
+    
+    Score = PhaseSimilarity × Coherence × e^(-λ × delta_t)
+    
+    Args:
+        signature: TemporalSignature to score
+        query_phase: Query phase vector
+        current_coherence: Current coherence value
+        now: Optional reference time (defaults to now)
+        
+    Returns:
+        Resonance score (0 to 1)
+    """
+    from datetime import timezone
+    import math
+    import numpy as np
+    
+    if now is None:
+        now = datetime.now(timezone.utc)
+    
+    # Handle timezone compatibility
+    from datetime import timezone
+    sig_time = signature.created_at
+    if sig_time.tzinfo is None:
+        sig_time = sig_time.replace(tzinfo=timezone.utc)
+    
+    if not signature.phase_vector or not query_phase:
+        return 0.0
+    
+    # Phase similarity
+    phase_dist = phase_distance(query_phase, signature.phase_vector)
+    phase_sim = 1.0 / (1.0 + phase_dist)
+    
+    # Temporal decay
+    dt = (now - sig_time).total_seconds()
+    decay = math.exp(-signature.decay_rate * dt / 3600)  # hours
+    
+    # Coherence weight
+    coherence_weight = signature.coherence_value
+    
+    # Self-correction: downgrade solaria origins
+    origin_weight = 0.7 if signature.origin == "solaria" else 1.0
+    
+    return phase_sim * coherence_weight * decay * origin_weight
