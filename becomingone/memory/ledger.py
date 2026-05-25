@@ -49,8 +49,8 @@ def get_last_merkle_root(filepath: str = LEDGER_FILE) -> str:
                 if line.strip():
                     try:
                         record = json.loads(line)
-                        if "merkle_root" in record:
-                            last_root = record["merkle_root"]
+                        if "crypto_metadata" in record and "merkle_root" in record["crypto_metadata"]:
+                            last_root = record["crypto_metadata"]["merkle_root"]
                     except json.JSONDecodeError:
                         pass
     except Exception as e:

@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Callable, Any, Tuple
 from enum import Enum
 from datetime import datetime
+from datetime import timezone
 import math
 import random
 
@@ -245,7 +246,7 @@ class WitnessingLayer:
             coherence = self.calculator.calculate(content) if self.calculator else 0.0
         
         # Create content ID
-        content_id = f"w_{witness_id}_{datetime.utcnow().isoformat()}"
+        content_id = f"w_{witness_id}_{datetime.now(timezone.utc).isoformat()}"
         
         # Create witnessed content
         witnessed = WitnessedContent(
@@ -258,7 +259,7 @@ class WitnessingLayer:
         
         # Update witness state
         witness.observation_count += 1
-        witness.last_observed = datetime.utcnow()
+        witness.last_observed = datetime.now(timezone.utc)
         self.total_observations += 1
         
         # Store
@@ -352,7 +353,7 @@ class WitnessingLayer:
         witness.reflection_history.append({
             "content_id": witnessed.content_id,
             "depth": current_depth,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         self.total_reflections += 1
         
@@ -389,7 +390,7 @@ class WitnessingLayer:
         # Update witness state
         witness.integration_count += 1
         witness.coherence_contribution += contribution
-        witness.meta_state["last_integration"] = datetime.utcnow().isoformat()
+        witness.meta_state["last_integration"] = datetime.now(timezone.utc).isoformat()
         witness.meta_state["total_contribution"] = witness.coherence_contribution
         
         # Store in memory if bound
@@ -522,7 +523,7 @@ class WitnessingLayer:
             "mutual_boost": mutual_boost,
             "we_coherence": we_coherence,
             "we_witness_id": we_witness_id,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         return report

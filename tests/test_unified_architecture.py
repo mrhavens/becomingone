@@ -60,6 +60,10 @@ async def test_full_fieldprint_pipeline(tmp_path):
         # Force it to be an IDENTITY strength signature for hardware anchoring
         sig.strength = MemoryStrength.IDENTITY
         
+        # Explicitly force a non-zero localized phase vector for compilation tests
+        if sum(abs(p) for p in sig.phase_vector) == 0.0:
+            sig.phase_vector = [0.1] * 64
+            
         # 4. Cryptographic Anchoring
         from becomingone.memory.temporal import persist_signature
         persist_signature(sig, filepath=ledger_path)

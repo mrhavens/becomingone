@@ -58,6 +58,7 @@ import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
+from datetime import timezone
 from pathlib import Path
 from typing import List
 from dataclasses import dataclass, field, asdict
@@ -99,7 +100,7 @@ def create_test_signature(
     phase_vector = encode_to_phase(content_text)
     
     # Calculate created_at
-    created_at = datetime.utcnow() - timedelta(hours=hours_ago) if hours_ago > 0 else datetime.utcnow()
+    created_at = datetime.now(timezone.utc) - timedelta(hours=hours_ago) if hours_ago > 0 else datetime.now(timezone.utc)
     
     # Create context hash
     import hashlib
@@ -115,7 +116,7 @@ def create_test_signature(
         origin=origin,
         parent_id=parent_id,
         created_at=created_at,
-        last_accessed=datetime.utcnow(),
+        last_accessed=datetime.now(timezone.utc),
         access_count=0,
         decay_rate=0.01,
         content={"text": content_text, "source": "test"},
@@ -158,6 +159,8 @@ class TestPersistence(unittest.TestCase):
         
         # Verify JSON is valid
         data = json.loads(lines[0])
+        if "payload" in data:
+            data = data["payload"]
         self.assertEqual(data['signature_id'], "test-001")
         self.assertEqual(data['coherence_value'], 0.85)
     

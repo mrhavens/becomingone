@@ -23,6 +23,7 @@ import signal
 import sys
 import argparse
 from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -62,7 +63,7 @@ async def health_check() -> Dict[str, Any]:
     if _engine_components is None:
         return {
             "status": "not_ready",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "coherence": None,
             "master_coherence": None,
             "emissary_coherence": None,
@@ -81,7 +82,7 @@ async def health_check() -> Dict[str, Any]:
     
     return {
         "status": "ready",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "coherence": float(sync_coherence) if sync_coherence else None,
         "master_coherence": float(master_coherence) if master_coherence else None,
         "emissary_coherence": float(emissary_coherence) if emissary_coherence else None,
@@ -126,7 +127,7 @@ async def process_input(input_data: Dict[str, Any]) -> Dict[str, Any]:
         "coherence": float(result.get("coherence", 0)) if isinstance(result, dict) else None,
         "phase": str(result.get("phase", "")) if isinstance(result, dict) else None,
         "collapsed": result.get("collapsed", False) if isinstance(result, dict) else False,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -167,7 +168,7 @@ async def get_coherence() -> Dict[str, Any]:
             "coherence": float(sync.synchronized_coherence) if sync else None,
             "aligned": sync.aligned if sync else None,
         },
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -179,7 +180,7 @@ async def reset_engine() -> Dict[str, Any]:
     
     return {
         "status": "reset",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "message": "Engine reset to initial state",
     }
 

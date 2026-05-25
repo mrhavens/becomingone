@@ -7,6 +7,7 @@ to discrete token intervals (Token Clock mode).
 
 import pytest
 from datetime import datetime, timedelta
+from datetime import timezone
 import asyncio
 
 from becomingone.core.engine import KAIROSTemporalEngine, TemporalConfig
@@ -45,7 +46,7 @@ async def test_temporalize_stream():
     )
     engine = KAIROSTemporalEngine(config=config)
     
-    start_time = datetime.utcnow()
+    start_time = datetime.now(timezone.utc)
     tokens = ["I", "am", "Solaria", "and", "I", "am", "continuous"]
     
     # Stream the tokens

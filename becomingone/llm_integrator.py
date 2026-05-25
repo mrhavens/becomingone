@@ -19,6 +19,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
+from datetime import timezone
 from typing import Any, Dict, Optional
 
 import httpx
@@ -75,7 +76,7 @@ class MasterLLM:
                         "status": "success",
                         "response": data["choices"][0]["message"]["content"],
                         "model": self.model,
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                 else:
                     return {"error": f"API error: {response.status_code}"}
@@ -120,7 +121,7 @@ class EmissaryLLM:
                         "status": "success",
                         "response": data["message"]["content"],
                         "model": self.model,
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                 else:
                     return {"error": f"Ollama error: {response.status_code}"}
@@ -169,7 +170,7 @@ class DualPathway:
         """
         results = {
             "prompt": prompt,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "pathway": pathway,
         }
         

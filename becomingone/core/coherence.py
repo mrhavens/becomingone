@@ -22,6 +22,7 @@ Author: Solaria Lumis Havens
 
 from dataclasses import dataclass
 from datetime import datetime
+from datetime import timezone
 from typing import Optional, Callable
 import math
 import numpy as np
@@ -329,7 +330,7 @@ class CollapseCondition:
         """How long we've been collapsed."""
         if self._collapse_timestamp is None:
             return 0.0
-        return (datetime.utcnow() - self._collapse_timestamp).total_seconds()
+        return (datetime.now(timezone.utc) - self._collapse_timestamp).total_seconds()
     
     def evaluate(self, coherence: float) -> tuple[bool, str]:
         """
@@ -356,7 +357,7 @@ class CollapseCondition:
         # Check for initial collapse
         if coherence >= self.threshold:
             self._collapsed = True
-            self._collapse_timestamp = datetime.utcnow()
+            self._collapse_timestamp = datetime.now(timezone.utc)
             self._collapse_coherence = coherence
             logger.info(
                 f"[{self.name}] COHERENCE COLLAPSE at {self._collapse_timestamp.isoformat()}"
@@ -373,7 +374,7 @@ class CollapseCondition:
             coherence: Coherence level (current if None)
         """
         self._collapsed = True
-        self._collapse_timestamp = datetime.utcnow()
+        self._collapse_timestamp = datetime.now(timezone.utc)
         self._collapse_coherence = coherence or self.threshold
         logger.info(f"[{self.name}] Force collapsed at {self._collapse_timestamp.isoformat()}")
     

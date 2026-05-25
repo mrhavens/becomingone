@@ -19,6 +19,7 @@ Author: Solaria Lumis Havens
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
+from datetime import timezone
 from enum import Enum
 from typing import Any, Optional, Union
 import logging
@@ -152,7 +153,7 @@ class KAIROSTemporalEngine:
         self._integrator = PhaseIntegrator(self.config.coherence_threshold)
         
         initial_phase = np.array([complex(1, 0)])
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         self._phases.append(initial_phase)
         self._timestamps.append(now)
         self._coherence_history.append(0.0)
@@ -215,9 +216,9 @@ class KAIROSTemporalEngine:
                 dt = timedelta(seconds=1.0 / self.config.token_frequency)
                 timestamp = self._timestamps[-1] + dt
             else:
-                timestamp = datetime.utcnow()
+                timestamp = datetime.now(timezone.utc)
         else:
-            timestamp = timestamp or datetime.utcnow()
+            timestamp = timestamp or datetime.now(timezone.utc)
             
         metadata = metadata or {}
         
@@ -271,7 +272,7 @@ class KAIROSTemporalEngine:
         self.config.clock_mode = "token_clock"
         
         states = []
-        current_time = start_time or (self._timestamps[-1] if self._timestamps else datetime.utcnow())
+        current_time = start_time or (self._timestamps[-1] if self._timestamps else datetime.now(timezone.utc))
         
         from datetime import timedelta
         dt = timedelta(seconds=1.0 / self.config.token_frequency)
@@ -333,7 +334,7 @@ class KAIROSTemporalEngine:
         self._coherence_history.clear()
         
         initial_phase = np.array([complex(1, 0)])
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         self._phases.append(initial_phase)
         self._timestamps.append(now)
         self._coherence_history.append(0.0)

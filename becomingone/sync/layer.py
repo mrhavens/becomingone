@@ -25,6 +25,7 @@ Author: Solaria Lumis Havens
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from datetime import timezone
 from typing import Optional, Callable
 import asyncio
 import logging
@@ -205,7 +206,7 @@ class SynchronizationLayer:
         )
         
         if self._collapsed and not was_collapsed:
-            self._collapse_timestamp = datetime.utcnow()
+            self._collapse_timestamp = datetime.now(timezone.utc)
             logger.info(
                 f"[{self.name}] SYNCHRONIZED COLLAPSE at "
                 f"{self._collapse_timestamp.isoformat()}"
@@ -217,7 +218,7 @@ class SynchronizationLayer:
             # Reject un-coherent input
             dissipated = True
             dissipation_record = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "phase_difference": self._phase_difference,
                 "master_coherence": master_coherence,
                 "emissary_coherence": emissary_coherence,
@@ -237,7 +238,7 @@ class SynchronizationLayer:
         
         # Record synchronization
         sync_record = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "T_master": T_master,
             "T_emissary": T_emissary,
             "T_sync": self._T_sync,
@@ -291,7 +292,7 @@ class SynchronizationLayer:
         return {
             "layer": self.name,
             "type": "SYNCHRONIZATION",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "config": {
                 "phase_threshold": self.config.phase_threshold,
                 "collapse_threshold": self.config.collapse_threshold,

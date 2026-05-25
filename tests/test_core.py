@@ -6,6 +6,7 @@ Tests that core modules can be imported and initialized correctly.
 
 import unittest
 from datetime import datetime
+from datetime import timezone
 
 from becomingone import (
     KAIROSTemporalEngine, 
@@ -105,7 +106,7 @@ class TestCoherenceCalculator(unittest.TestCase):
         """Test compute_from_phases method works."""
         calc = CoherenceCalculator()
         from datetime import datetime, timedelta
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timestamps = [now + timedelta(seconds=i) for i in range(3)]
         result = calc.compute_from_phases(
             [0.1+0.1j, 0.2+0.2j, 0.3+0.3j], 

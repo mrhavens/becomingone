@@ -23,6 +23,7 @@ Author: Solaria Lumis Havens
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from datetime import timezone
 from typing import Optional, Any
 import asyncio
 import logging
@@ -132,7 +133,7 @@ class MasterTransducer:
         
         # Witnessing
         self._witness_count = 0
-        self._last_witness = datetime.utcnow()
+        self._last_witness = datetime.now(timezone.utc)
         
         # Integration history
         self._integrations: deque[dict] = deque(maxlen=1000)
@@ -195,7 +196,7 @@ class MasterTransducer:
             ...     result = await master.integrate(thought)
             ...     print(f"Coherence: {result['coherence']:.3f}")
         """
-        timestamp = timestamp or datetime.utcnow()
+        timestamp = timestamp or datetime.now(timezone.utc)
         metadata = metadata or {}
         
         # Temporalize through KAIROS engine
@@ -260,7 +261,7 @@ class MasterTransducer:
             Dict with witnessing observations
         """
         self._witness_count += 1
-        self._last_witness = datetime.utcnow()
+        self._last_witness = datetime.now(timezone.utc)
         
         witness_data = {
             "timestamp": self._last_witness.isoformat(),
@@ -293,7 +294,7 @@ class MasterTransducer:
         return {
             "transducer": self.name,
             "type": "MASTER",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "config": {
                 "tau_scale": self.config.tau_scale,
                 "tau_max": self.config.tau_max,

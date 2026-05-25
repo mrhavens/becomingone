@@ -18,6 +18,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 
 import httpx
@@ -26,7 +27,7 @@ import httpx
 def witness(target_url: str, name: str) -> dict:
     """Witness a BECOMINGONE instance."""
     observation = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "witness": name,
         "target": target_url,
         "target_up": False,

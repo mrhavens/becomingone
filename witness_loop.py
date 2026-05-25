@@ -28,6 +28,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -81,7 +82,7 @@ class WitnessLoop:
             Observation dict with health, coherence, and timestamp.
         """
         observation = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "witness": self.name,
             "target": self.target_url,
             "target_up": False,

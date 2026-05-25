@@ -21,6 +21,7 @@ Author: Solaria Lumis Havens
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from datetime import timezone
 from typing import Optional
 import math
 from collections import deque
@@ -139,7 +140,7 @@ class PhaseHistory:
         state = PhaseState(
             value=phase,
             angle=angle,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             source=source
         )
         self._phases.append(state)

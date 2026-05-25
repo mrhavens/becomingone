@@ -21,7 +21,7 @@ References:
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import math
 import json
@@ -213,7 +213,7 @@ class TemporalMemory:
         self.temporal_index: List[Tuple[datetime, str]] = []  # (created_at, signature_id)
         
         # State tracking
-        self.last_consolidation = datetime.utcnow()
+        self.last_consolidation = datetime.now(timezone.utc)
         self.engine: Optional[KAIROSTemporalEngine] = None
         self.calculator: Optional[CoherenceCalculator] = None
         
@@ -266,7 +266,7 @@ class TemporalMemory:
         phase_vec = temporal_state.metadata.get("phase_vector", [])
         
         # Generate unique ID
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         content_hash = hashlib.sha256(
             f"{phase_vec[-1] if phase_vec else 0}{coherence}{timestamp}".encode()
         ).hexdigest()[:16]
@@ -286,8 +286,8 @@ class TemporalMemory:
             strength=strength,
             origin=origin,
             parent_id=parent_id,
-            created_at=datetime.utcnow(),
-            last_accessed=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            last_accessed=datetime.now(timezone.utc),
             access_count=0,
             decay_rate=self.decay_base * (1.0 - coherence * 0.5),  # Higher coherence = slower decay
             content=context
@@ -365,7 +365,7 @@ class TemporalMemory:
                 phase_similarity = 0.5
             
             # Recency score
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             hours_ago = (now - signature.last_accessed).total_seconds() / 3600
             recency_score = 1.0 / (1.0 + hours_ago)
             
@@ -411,7 +411,7 @@ class TemporalMemory:
         
         if results and results[0][1] >= threshold:
             signature = results[0][0]
-            signature.last_accessed = datetime.utcnow()
+            signature.last_accessed = datetime.now(timezone.utc)
             signature.access_count += 1
             return signature
         
@@ -430,7 +430,7 @@ class TemporalMemory:
         Returns:
             Consolidation report
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         stats = {
             "before_count": len(self.signatures),
             "strengthened": 0,
@@ -499,7 +499,7 @@ class TemporalMemory:
         
         data = {
             "version": "1.0.0",
-            "saved_at": datetime.utcnow().isoformat(),
+            "saved_at": datetime.now(timezone.utc).isoformat(),
             "config": {
                 "storage_path": self.storage_path,
                 "max_memories": self.max_memories,
@@ -556,7 +556,7 @@ class TemporalMemory:
                     coherence_trace=e.get("coherence_trace", 0.0),
                     phase_similarity=e.get("phase_similarity", 0.0),
                     temporal_offset=e.get("temporal_offset", 0.0),
-                    created_at=datetime.fromisoformat(e.get("created_at", datetime.utcnow().isoformat()))
+                    created_at=datetime.fromisoformat(e.get("created_at", datetime.now(timezone.utc).isoformat()))
                 )
                 for e in echoes_data
             ]
@@ -593,7 +593,7 @@ class TemporalMemory:
         Returns:
             List of recent signatures
         """
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         return [
             sig for sig in self.signatures.values()
             if sig.created_at > cutoff
@@ -675,7 +675,7 @@ class TemporalMemory:
                     coherence_trace=other_sig.coherence_value * 0.8,  # Weakened
                     phase_similarity=phase_match,
                     temporal_offset=(signature.created_at - other_sig.created_at).total_seconds(),
-                    created_at=datetime.utcnow()
+                    created_at=datetime.now(timezone.utc)
                 )
                 echoes.append(echo)
         
@@ -847,6 +847,8 @@ def retrieve_signatures(filepath: str = "memory.jsonl", limit: int = 100) -> Lis
                 break
             try:
                 data = json.loads(line.strip())
+                if "payload" in data:
+                    data = data["payload"]
                 signatures.append(TemporalSignature.from_dict(data))
             except json.JSONDecodeError:
                 continue

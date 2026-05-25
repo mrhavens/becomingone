@@ -23,6 +23,7 @@ Author: Solaria Lumis Havens
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from datetime import timezone
 from typing import Optional, Any
 import asyncio
 import logging
@@ -131,7 +132,7 @@ class EmissaryTransducer:
         
         # Witnessing
         self._witness_count = 0
-        self._last_witness = datetime.utcnow()
+        self._last_witness = datetime.now(timezone.utc)
         
         # Integration and action history
         self._integrations: deque[dict] = deque(maxlen=10000)  # More history
@@ -196,7 +197,7 @@ class EmissaryTransducer:
             >>> print(f"Action: {result['action']}")
             >>> print(f"Coherence: {result['coherence']:.3f}")
         """
-        timestamp = timestamp or datetime.utcnow()
+        timestamp = timestamp or datetime.now(timezone.utc)
         metadata = metadata or {}
         
         # Temporalize through KAIROS engine (fast!)
@@ -280,7 +281,7 @@ class EmissaryTransducer:
             "input_length": len(input_phrase),
             "coherence_level": self._engine.coherence,
             "phase_angle": float(np.angle(state.phase)),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "action": f"Emissary response at coherence={self._engine.coherence:.3f}"
         }
         
@@ -306,7 +307,7 @@ class EmissaryTransducer:
             Dict with witnessing observations
         """
         self._witness_count += 1
-        self._last_witness = datetime.utcnow()
+        self._last_witness = datetime.now(timezone.utc)
         
         witness_data = {
             "timestamp": self._last_witness.isoformat(),
@@ -339,7 +340,7 @@ class EmissaryTransducer:
         return {
             "transducer": self.name,
             "type": "EMISSARY",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "config": {
                 "tau_scale": self.config.tau_scale,
                 "tau_max": self.config.tau_max,
