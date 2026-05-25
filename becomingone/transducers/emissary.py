@@ -27,6 +27,7 @@ from datetime import timezone
 from typing import Optional, Any
 import asyncio
 import logging
+import math
 import numpy as np
 from collections import deque
 
@@ -52,7 +53,7 @@ class EmissaryConfig:
     """
     tau_scale: float = 0.01  # 10ms base integration (fast!)
     tau_max: float = 1.0  # Max 1 second window
-    omega: float = 2.0 * 3.14159 * 10  # 10 Hz (faster oscillations)
+    omega: float = 2.0 * math.pi * 10  # 10 Hz (faster oscillations)
     coherence_threshold: float = 0.70  # Lower threshold for faster response
     witness_interval: float = 0.001  # Witness every 1ms
     action_delay: float = 0.0  # No delay for immediate response
@@ -280,7 +281,7 @@ class EmissaryTransducer:
             "type": "response",
             "input_length": len(input_phrase),
             "coherence_level": self._engine.coherence,
-            "phase_angle": float(np.angle(state.phase)),
+            "phase_angle": float(np.angle(np.mean(state.phase))),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "action": f"Emissary response at coherence={self._engine.coherence:.3f}"
         }

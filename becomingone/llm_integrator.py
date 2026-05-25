@@ -206,7 +206,7 @@ async def main():
     # Create pathway
     pathway = DualPathway(
         master=MasterLLM(),
-        emissaary=EmissaryLLM(model=args.emissary_model)
+        emissary=EmissaryLLM(model=args.emissary_model)
     )
     
     # Process

@@ -348,6 +348,7 @@ class CollapseCondition:
                 return True, f"Maintained coherence ({coherence:.3f} >= {self.threshold:.2f})"
             else:
                 # Coherence dropped below threshold
+                self._collapsed = False
                 logger.warning(
                     f"[{self.name}] Coherence DECAYED below threshold: "
                     f"{coherence:.3f} < {self.threshold:.3f}"

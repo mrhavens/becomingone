@@ -253,17 +253,14 @@ class TemporalMemory:
             raise RuntimeError("TemporalMemory not bound to KAIROS engine")
         
         # Calculate coherence if not already done
-        if temporal_state.coherence is None:
-            coherence = self.calculator.calculate(temporal_state)
-        else:
-            coherence = temporal_state.coherence
+        coherence = temporal_state.coherence
         
         # Only encode significant events
         if coherence < self.attention_threshold and not force_attention:
             return None
         
         # Extract full phase vector from state metadata
-        phase_vec = temporal_state.metadata.get("phase_vector", [])
+        phase_vec = temporal_state.metadata.get("raw_angles", [])
         
         # Generate unique ID
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -339,7 +336,7 @@ class TemporalMemory:
         if self.calculator is None:
             raise RuntimeError("TemporalMemory not bound to KAIROS engine")
         
-        query_coherence = self.calculator.calculate(query_state)
+        query_coherence = query_state.coherence
         
         results: List[Tuple[TemporalSignature, float]] = []
         
@@ -355,8 +352,10 @@ class TemporalMemory:
             coherence_similarity = 1.0 - abs(query_coherence - signature.coherence_value)
             
             # Phase similarity (if available)
-            if query_state.phase_history and signature.phase_vector:
-                query_phase = query_state.phase_history[-1]
+            import numpy as np
+            phase_vec = query_state.metadata.get("raw_angles", [])
+            if phase_vec and signature.phase_vector:
+                query_phase = float(np.mean(phase_vec))
                 phase_similarity = 1.0 - min(
                     abs(query_phase - sum(signature.phase_vector) / len(signature.phase_vector)), 
                     1.0
@@ -654,8 +653,10 @@ class TemporalMemory:
         echoes = []
         
         # Find similar recent memories to create echoes with
-        for other_id, other_sig in list(self.signatures.items())[:50]:
-            if other_id == signature.signature_id:
+        recent_ids = [sid for _, sid in self.temporal_index[-50:]]
+        for other_id in recent_ids:
+            other_sig = self.signatures.get(other_id)
+            if not other_sig or other_id == signature.signature_id:
                 continue
             
             # Calculate similarity

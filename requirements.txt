@@ -9,7 +9,7 @@ scipy>=1.10.0
 sentence-transformers>=2.2.0
 
 # Async
-asyncio>=3.4.3
+aiohttp>=3.8.0
 
 # Configuration
 pydantic>=2.0.0

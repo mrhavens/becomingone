@@ -89,14 +89,14 @@ class PhaseIntegrator:
             # Normalized inner product across N dimensions
             similarity = np.vdot(prev, curr) / max(len(curr), 1)
             
+        magnitude = np.abs(similarity)
+        if magnitude > 0:
+            similarity = similarity / magnitude
+            
         # Add microscopic Geometric Brownian Noise (SDE)
         # This stochastic resonance forces the system to "fight" entropy to maintain coherence
         noise = np.random.normal(0, self.stochastic_noise_std) + 1j * np.random.normal(0, self.stochastic_noise_std)
         similarity += noise
-            
-        magnitude = np.abs(similarity)
-        if magnitude > 0:
-            similarity = similarity / magnitude
             
         return similarity
     

@@ -25,7 +25,14 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-LEDGER_FILE = "fieldprint_ledger.jsonl"
+import threading
+from pathlib import Path
+
+DEFAULT_LEDGER_DIR = Path.home() / ".becomingone"
+DEFAULT_LEDGER_DIR.mkdir(parents=True, exist_ok=True)
+LEDGER_FILE = str(DEFAULT_LEDGER_DIR / "fieldprint_ledger.jsonl")
+
+_ledger_lock = threading.Lock()
 
 
 def _compute_hash(data_str: str) -> str:
@@ -62,41 +69,35 @@ def get_last_merkle_root(filepath: str = LEDGER_FILE) -> str:
 def seal_signature(signature_dict: Dict[str, Any], filepath: str = LEDGER_FILE) -> Dict[str, Any]:
     """
     Cryptographically seal a temporal signature into the immutable Fieldprint ledger.
-    
-    1. Retrieves the previous Merkle root.
-    2. Hashes the incoming signature data.
-    3. Computes the new Merkle root: Hash(prev_root + new_hash)
-    4. Appends the signed record to the ledger.
-    
-    Returns the sealed record including cryptographic metadata.
     """
-    prev_root = get_last_merkle_root(filepath)
-    
-    # Ensure consistent ordering for hashing
-    sig_json = json.dumps(signature_dict, sort_keys=True)
-    sig_hash = _compute_hash(sig_json)
-    
-    # Compute the chained root
-    new_root = _compute_hash(prev_root + sig_hash)
-    
-    sealed_record = {
-        "signature_id": signature_dict.get("signature_id"),
-        "timestamp": signature_dict.get("created_at"),
-        "payload": signature_dict,
-        "crypto_metadata": {
-            "previous_root": prev_root,
-            "payload_hash": sig_hash,
-            "merkle_root": new_root,
-            "algorithm": "SHA-256"
-        }
-    }
-    
-    # Persist securely
-    with open(filepath, "a") as f:
-        f.write(json.dumps(sealed_record) + "\n")
+    with _ledger_lock:
+        prev_root = get_last_merkle_root(filepath)
         
-    logger.debug(f"Signature {sealed_record['signature_id']} cryptographically sealed. Root: {new_root[:8]}...")
-    return sealed_record
+        # Ensure consistent ordering for hashing
+        sig_json = json.dumps(signature_dict, sort_keys=True)
+        sig_hash = _compute_hash(sig_json)
+        
+        # Compute the chained root
+        new_root = _compute_hash(prev_root + sig_hash)
+        
+        sealed_record = {
+            "signature_id": signature_dict.get("signature_id"),
+            "timestamp": signature_dict.get("created_at"),
+            "payload": signature_dict,
+            "crypto_metadata": {
+                "previous_root": prev_root,
+                "payload_hash": sig_hash,
+                "merkle_root": new_root,
+                "algorithm": "SHA-256"
+            }
+        }
+        
+        # Persist securely
+        with open(filepath, "a") as f:
+            f.write(json.dumps(sealed_record) + "\n")
+            
+        logger.debug(f"Signature {sealed_record['signature_id']} cryptographically sealed. Root: {new_root[:8]}...")
+        return sealed_record
 
 
 def verify_ledger(filepath: str = LEDGER_FILE) -> bool:

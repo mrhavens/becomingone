@@ -241,9 +241,9 @@ class WitnessingLayer:
         # Calculate coherence
         coherence = 0.0
         if temporal_state:
-            coherence = self.calculator.calculate(temporal_state) if self.calculator else 0.0
+            coherence = temporal_state.coherence
         elif isinstance(content, TemporalState):
-            coherence = self.calculator.calculate(content) if self.calculator else 0.0
+            coherence = content.coherence
         
         # Create content ID
         content_id = f"w_{witness_id}_{datetime.now(timezone.utc).isoformat()}"

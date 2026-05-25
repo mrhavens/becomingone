@@ -13,7 +13,7 @@ This integration test verifies the complete pipeline:
 
 import os
 import pytest
-from datetime import datetime
+pytest.importorskip("torch")
 import torch
 
 from becomingone.core.engine import KAIROSTemporalEngine

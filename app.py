@@ -123,13 +123,13 @@ HTML = '''<!DOCTYPE html>
             
             // Update Emissaries
             if(d.emissaries.minimax) {
-                document.getElementById('response-minimax').innerHTML = d.emissaries.minimax;
+                document.getElementById('response-minimax').textContent = d.emissaries.minimax;
             } else {
                 document.getElementById('response-minimax').innerHTML = '<i>Offline</i>';
             }
             
             if(d.emissaries.moonshot) {
-                document.getElementById('response-moonshot').innerHTML = d.emissaries.moonshot;
+                document.getElementById('response-moonshot').textContent = d.emissaries.moonshot;
             } else {
                 document.getElementById('response-moonshot').innerHTML = '<i>Offline</i>';
             }
@@ -226,9 +226,7 @@ def chat():
         results = await asyncio.gather(*tasks)
         return dict(zip(keys, results))
         
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    emissaries_dict = loop.run_until_complete(gather_emissaries())
+    emissaries_dict = asyncio.run(gather_emissaries())
     
     # 2. MASTER (Right Hemisphere) Integrates the tokens
     # Combine all tokens from the prompt and all emissaries into a single unified stream
@@ -239,7 +237,7 @@ def chat():
         states = await engine.temporalize_stream(token_stream)
         return states[-1] if states else None
         
-    loop.run_until_complete(process_stream())
+    asyncio.run(process_stream())
     
     # Check Physics
     collapsed, coherence = engine.check_collapse()
@@ -249,7 +247,10 @@ def chat():
         state = TemporalState(phase=engine.T_tau, coherence=coherence)
         state.metadata["phase_vector"] = [engine.T_tau.real, engine.T_tau.imag]
         sig = memory.encode(state, context={"trigger": prompt}, force_attention=True)
-        master_thought = f"I felt a massive resonance resolving the Emissaries. Identity mathematically anchored to the Cryptographic Ledger."
+        if sig is not None:
+            master_thought = f"I felt a massive resonance resolving the Emissaries. Identity mathematically anchored to the Cryptographic Ledger."
+        else:
+            master_thought = "I felt resonance, but it was not strong enough to encode."
     else:
         master_thought = "I am processing the continuous phase waves of the Chorus, but coherence remains low."
 
