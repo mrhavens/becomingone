@@ -136,3 +136,4 @@ becomingone-rs/target/
 
 # Local configuration
 local.yaml
+secrets.local
