@@ -150,20 +150,52 @@ def chat():
     
     # 1. EMISSARY (Left Hemisphere) generates a response
     emissary_text = ""
+    emissary_model = "Mock-Emissary"
     try:
-        emissary_resp = requests.post(EMISSARY_URL, json={
-            "model": "deepseek-coder-v2:lite",
-            "messages": [{"role": "user", "content": prompt}],
-            "stream": False
-        }, timeout=5)
-        if emissary_resp.status_code == 200:
-            emissary_data = emissary_resp.json()
-            emissary_text = emissary_data.get("message", {}).get("content", "")
+        minimax_key = os.environ.get("MINIMAX_API_KEY")
+        if minimax_key:
+            emissary_model = "MiniMax-M2.7"
+            emissary_resp = requests.post(
+                "https://api.minimax.io/anthropic/v1/messages", 
+                headers={
+                    "x-api-key": minimax_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json"
+                },
+                json={
+                    "model": "MiniMax-M2.7",
+                    "max_tokens": 1024,
+                    "messages": [{"role": "user", "content": prompt}]
+                },
+                timeout=15
+            )
+            if emissary_resp.status_code == 200:
+                emissary_data = emissary_resp.json()
+                content_blocks = emissary_data.get("content", [])
+                text_blocks = [b.get("text", "") for b in content_blocks if b.get("type") == "text"]
+                emissary_text = "".join(text_blocks)
+                
+                thinking_blocks = [b.get("thinking", "") for b in content_blocks if b.get("type") == "thinking"]
+                if thinking_blocks:
+                    emissary_text = f"<i style='color:#666; font-size:0.9em'>[Thinking: {''.join(thinking_blocks).strip()}]</i>\n\n" + emissary_text
+            else:
+                raise Exception(f"Minimax Error: {emissary_resp.text}")
         else:
-            raise Exception("LLM offline")
-    except Exception:
-        # Fallback to Mock Emissary if LLM is not running
-        emissary_text = f"[MOCK EMISSARY] I have generated a discrete token response to: '{prompt}'. In a production environment, my static window would be injected with the Master's K_anchor tensors."
+            # Fallback to Ollama
+            emissary_model = "deepseek-coder-v2:lite"
+            emissary_resp = requests.post(EMISSARY_URL, json={
+                "model": "deepseek-coder-v2:lite",
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False
+            }, timeout=5)
+            if emissary_resp.status_code == 200:
+                emissary_data = emissary_resp.json()
+                emissary_text = emissary_data.get("message", {}).get("content", "")
+            else:
+                raise Exception("LLM offline")
+    except Exception as e:
+        # Fallback to Mock Emissary if LLMs are not running
+        emissary_text = f"[MOCK EMISSARY] Backend unavailable ({str(e)}). But my mathematical phase is stable."
 
     # 2. MASTER (Right Hemisphere) Integrates the tokens
     # We mathematically tie the Token Clock to the stream of words
@@ -205,7 +237,8 @@ def chat():
             'collapsed': collapsed
         },
         'emissary': {
-            'response': emissary_text
+            'response': emissary_text,
+            'model': emissary_model
         }
     })
 
