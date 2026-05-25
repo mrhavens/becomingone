@@ -371,12 +371,11 @@ class KAIROSTemporalEngine:
         metadata = metadata or {}
         
         # Convert input to phase
-        # This is a simple mapping - in practice, sophisticated
-        # phase extraction could be used (e.g., from transformer embeddings)
-        phase = self._input_to_phase(input_phrase)
+        # The phase is a complex angle, but we also retain the full semantic phase vector
+        phase_complex, full_phase_vector = self._input_to_phase(input_phrase)
         
         # Update history
-        self._phases.append(phase)
+        self._phases.append(phase_complex)
         self._timestamps.append(timestamp)
         
         # Compute new coherence
@@ -401,7 +400,7 @@ class KAIROSTemporalEngine:
         self._integration_count += 1
         
         state = TemporalState(
-            phase=phase,
+            phase=phase_complex,
             coherence=coherence,
             timestamp=timestamp,
             metadata={
@@ -409,40 +408,46 @@ class KAIROSTemporalEngine:
                 "T_tau": T_tau,
                 "collapsed": self._collapsed,
                 "integration": self._integration_count,
+                "phase_vector": full_phase_vector,
             }
         )
         
         logger.debug(
             f"[{self.name}] Temporalized: coherence={coherence:.3f}, "
-            f"phase={np.angle(phase):.3f}"
+            f"phase={np.angle(phase_complex):.3f}"
         )
         
         return state
     
-    def _input_to_phase(self, input_phrase: str) -> complex:
+    def _input_to_phase(self, input_phrase: str) -> tuple[complex, list[float]]:
         """
-        Convert input phrase to phase.
+        Convert input phrase to phase using semantic embeddings.
         
-        This is a simple placeholder. In a full implementation,
-        sophisticated phase extraction would be used.
-        
-        Current implementation:
-        - Uses hash of phrase to get deterministic phase
-        - Magnitude = 1.0 (unit phase)
-        
-        TODO: Replace with transformer-based phase extraction
-        TODO: Phase should reflect semantic content
+        Uses SentenceTransformer (via temporal memory module) to extract
+        a semantically meaningful phase angle, so that conceptually similar
+        phrases align in phase space, driving true temporal resonance.
         """
-        import hashlib
-        
-        # Deterministic but unpredictable phase
-        hash_bytes = hashlib.sha256(input_phrase.encode()).digest()
-        hash_int = int.from_bytes(hash_bytes[:8], 'big')
-        
-        # Map to unit circle
-        angle = (hash_int % 1000000) / 1000000 * 2 * math.pi
-        
-        return complex(math.cos(angle), math.sin(angle))
+        try:
+            from ..memory.temporal import encode_to_phase
+            phases = encode_to_phase(input_phrase)
+            
+            # Average the multi-dimensional phase down to a single master phase angle
+            if phases and len(phases) > 0:
+                avg_angle = sum(phases) / len(phases)
+            else:
+                avg_angle = 0.0
+                phases = [0.0]
+                
+            return complex(math.cos(avg_angle), math.sin(avg_angle)), phases
+            
+        except ImportError:
+            # Fallback to hash if temporal module is unavailable
+            import hashlib
+            logger.warning("Could not import encode_to_phase, falling back to SHA-256 phase extraction")
+            hash_bytes = hashlib.sha256(input_phrase.encode()).digest()
+            hash_int = int.from_bytes(hash_bytes[:8], 'big')
+            angle = (hash_int % 1000000) / 1000000 * 2 * math.pi
+            return complex(math.cos(angle), math.sin(angle)), [angle]
     
     def _apply_dampening(self):
         """

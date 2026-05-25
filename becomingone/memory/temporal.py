@@ -262,10 +262,13 @@ class TemporalMemory:
         if coherence < self.attention_threshold and not force_attention:
             return None
         
+        # Extract full phase vector from state metadata
+        phase_vec = temporal_state.metadata.get("phase_vector", [])
+        
         # Generate unique ID
         timestamp = datetime.utcnow().isoformat()
         content_hash = hashlib.sha256(
-            f"{temporal_state.phase_history[-1] if temporal_state.phase_history else 0}{coherence}{timestamp}".encode()
+            f"{phase_vec[-1] if phase_vec else 0}{coherence}{timestamp}".encode()
         ).hexdigest()[:16]
         
         signature_id = f"sig_{timestamp}_{content_hash}"
@@ -277,8 +280,8 @@ class TemporalMemory:
         signature = TemporalSignature(
             signature_id=signature_id,
             coherence_value=coherence,
-            phase_vector=temporal_state.phase_history[-10:] if temporal_state.phase_history else [],
-            frequency_modes=list(temporal_state.frequency_modes) if temporal_state.frequency_modes else [],
+            phase_vector=phase_vec,
+            frequency_modes=temporal_state.metadata.get("frequency_modes", []),
             context_hash=self._hash_context(context),
             strength=strength,
             origin=origin,
@@ -739,16 +742,19 @@ def create_temporal_memory(
 
 def persist_signature(signature: TemporalSignature, filepath: str = "memory.jsonl") -> None:
     """
-    Append signature to append-only JSONL file.
-    
-    Fire-and-forget: write after transduction completes.
+    Cryptographically seal and append signature to the immutable ledger.
     
     Args:
         signature: TemporalSignature to persist
         filepath: Path to JSONL file
     """
-    with open(filepath, "a") as f:
-        f.write(json.dumps(signature.to_dict()) + "\n")
+    try:
+        from .ledger import seal_signature
+        seal_signature(signature.to_dict(), filepath)
+    except ImportError:
+        # Fallback if ledger is missing
+        with open(filepath, "a") as f:
+            f.write(json.dumps(signature.to_dict()) + "\n")
 
 
 # =============================================================================
