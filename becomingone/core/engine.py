@@ -100,6 +100,8 @@ class TemporalConfig:
     coherence_threshold: float = 0.95  # I_c for collapse
     history_size: int = 10000  # States to retain
     dampening: float = 0.999  # Coherence dampening per cycle
+    clock_mode: str = "wall_clock"  # "wall_clock" or "token_clock"
+    token_frequency: float = 20.0  # Hz (Tokens per second, used if clock_mode == "token_clock")
 
 
 class PhaseIntegrator:
@@ -367,7 +369,17 @@ class KAIROSTemporalEngine:
             ...     state = await engine.temporalize(phrase)
             ...     print(f"Coherence: {state.coherence:.3f}")
         """
-        timestamp = timestamp or datetime.utcnow()
+        if self.config.clock_mode == "token_clock" and timestamp is None:
+            # Strictly increment from last known state mathematically
+            if len(self._timestamps) > 0:
+                from datetime import timedelta
+                dt = timedelta(seconds=1.0 / self.config.token_frequency)
+                timestamp = self._timestamps[-1] + dt
+            else:
+                timestamp = datetime.utcnow()
+        else:
+            timestamp = timestamp or datetime.utcnow()
+            
         metadata = metadata or {}
         
         # Convert input to phase
@@ -418,6 +430,46 @@ class KAIROSTemporalEngine:
         )
         
         return state
+        
+    async def temporalize_stream(
+        self,
+        token_stream: list[str],
+        start_time: Optional[datetime] = None,
+        metadata: Optional[dict] = None
+    ) -> list[TemporalState]:
+        """
+        Temporalize a discrete stream of tokens strictly spaced in time.
+        
+        This forces the engine into 'token_clock' mathematical rigor, advancing time
+        by exactly (1.0 / token_frequency) seconds for each item, removing all system
+        jitter from the T_tau calculation.
+        
+        Args:
+            token_stream: Iterable of text fragments/tokens.
+            start_time: Optional anchor time.
+            metadata: Additional context to attach.
+            
+        Returns:
+            List of TemporalStates produced by the stream.
+        """
+        original_mode = self.config.clock_mode
+        self.config.clock_mode = "token_clock"
+        
+        states = []
+        current_time = start_time or (self._timestamps[-1] if self._timestamps else datetime.utcnow())
+        
+        from datetime import timedelta
+        dt = timedelta(seconds=1.0 / self.config.token_frequency)
+        
+        try:
+            for token in token_stream:
+                state = await self.temporalize(token, timestamp=current_time, metadata=metadata)
+                states.append(state)
+                current_time += dt
+        finally:
+            self.config.clock_mode = original_mode
+            
+        return states
     
     def _input_to_phase(self, input_phrase: str) -> tuple[complex, list[float]]:
         """
