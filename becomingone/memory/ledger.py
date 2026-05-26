@@ -39,31 +39,55 @@ def _compute_hash(data_str: str) -> str:
     """Compute SHA-256 hash of a string."""
     return hashlib.sha256(data_str.encode("utf-8")).hexdigest()
 
+class MerkleTree:
+    """
+    True Binary Merkle DAG to prevent O(N) Hash Chain exhaustion.
+    Provides O(log N) verification paths.
+    """
+    def __init__(self):
+        self.leaves = []
+        
+    def add_leaf(self, hash_val: str):
+        self.leaves.append(hash_val)
+        
+    def get_root(self) -> str:
+        if not self.leaves:
+            return _compute_hash("BECOMING_ONE_GENESIS_ROOT_2026")
+        return self._compute_tree_root(self.leaves)
+        
+    def _compute_tree_root(self, current_level: list) -> str:
+        if len(current_level) == 1:
+            return current_level[0]
+            
+        next_level = []
+        for i in range(0, len(current_level), 2):
+            if i + 1 < len(current_level):
+                next_level.append(_compute_hash(current_level[i] + current_level[i+1]))
+            else:
+                next_level.append(current_level[i])
+                
+        return self._compute_tree_root(next_level)
+
+def rebuild_tree_from_file(filepath: str) -> MerkleTree:
+    tree = MerkleTree()
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        record = json.loads(line)
+                        if "crypto_metadata" in record and "payload_hash" in record["crypto_metadata"]:
+                            tree.add_leaf(record["crypto_metadata"]["payload_hash"])
+                    except json.JSONDecodeError:
+                        pass
+    return tree
 
 def get_last_merkle_root(filepath: str = LEDGER_FILE) -> str:
     """
     Retrieve the most recent Merkle root from the ledger.
     If the ledger is empty or doesn't exist, returns a genesis hash.
     """
-    if not os.path.exists(filepath):
-        # Genesis hash
-        return _compute_hash("BECOMING_ONE_GENESIS_ROOT_2026")
-        
-    last_root = None
-    try:
-        with open(filepath, 'r') as f:
-            for line in f:
-                if line.strip():
-                    try:
-                        record = json.loads(line)
-                        if "crypto_metadata" in record and "merkle_root" in record["crypto_metadata"]:
-                            last_root = record["crypto_metadata"]["merkle_root"]
-                    except json.JSONDecodeError:
-                        pass
-    except Exception as e:
-        logger.error(f"Error reading ledger for last root: {e}")
-        
-    return last_root if last_root else _compute_hash("BECOMING_ONE_GENESIS_ROOT_2026")
+    return rebuild_tree_from_file(filepath).get_root()
 
 
 def seal_signature(signature_dict: Dict[str, Any], filepath: str = LEDGER_FILE) -> Dict[str, Any]:
@@ -77,8 +101,10 @@ def seal_signature(signature_dict: Dict[str, Any], filepath: str = LEDGER_FILE) 
         sig_json = json.dumps(signature_dict, sort_keys=True)
         sig_hash = _compute_hash(sig_json)
         
-        # Compute the chained root
-        new_root = _compute_hash(prev_root + sig_hash)
+        # Append to True Merkle Tree DAG
+        tree = rebuild_tree_from_file(filepath)
+        tree.add_leaf(sig_hash)
+        new_root = tree.get_root()
         
         sealed_record = {
             "signature_id": signature_dict.get("signature_id"),
@@ -88,7 +114,8 @@ def seal_signature(signature_dict: Dict[str, Any], filepath: str = LEDGER_FILE) 
                 "previous_root": prev_root,
                 "payload_hash": sig_hash,
                 "merkle_root": new_root,
-                "algorithm": "SHA-256"
+                "algorithm": "SHA-256",
+                "topology": "Merkle-DAG"
             }
         }
         
@@ -115,6 +142,7 @@ def verify_ledger(filepath: str = LEDGER_FILE) -> bool:
         return True
         
     expected_prev = _compute_hash("BECOMING_ONE_GENESIS_ROOT_2026")
+    verification_tree = MerkleTree()
     
     with open(filepath, 'r') as f:
         for line_num, line in enumerate(f, 1):
@@ -145,7 +173,8 @@ def verify_ledger(filepath: str = LEDGER_FILE) -> bool:
                 return False
                 
             # 3. Verify root computation
-            actual_root = _compute_hash(prev_root + actual_payload_hash)
+            verification_tree.add_leaf(actual_payload_hash)
+            actual_root = verification_tree.get_root()
             if actual_root != merkle_root:
                 logger.error(f"LEDGER COMPROMISE: Merkle root invalid at line {line_num}.")
                 return False

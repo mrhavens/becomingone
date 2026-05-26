@@ -96,10 +96,14 @@ class PhaseIntegrator:
         if magnitude > 0:
             similarity = similarity / magnitude
             
-        # Add microscopic Geometric Brownian Noise (SDE)
-        # This stochastic resonance forces the system to "fight" entropy to maintain coherence
-        noise = self.rng.normal(0, self.stochastic_noise_std) + 1j * self.rng.normal(0, self.stochastic_noise_std)
-        similarity += similarity * noise  # Multiplicative (GBM) noise
+            # Add microscopic Geometric Brownian Noise (SDE) using Euler-Maruyama
+            # dX_t = \mu X_t dt + \sigma X_t dW_t
+            dt = 1.0
+            dW = (self.rng.normal(0, 1.0) + 1j * self.rng.normal(0, 1.0)) * math.sqrt(dt)
+            mu = 0.0
+            sigma = self.stochastic_noise_std
+            
+            similarity += similarity * (mu * dt + sigma * dW)
             
         return similarity
     
@@ -168,6 +172,7 @@ class KAIROSTemporalEngine:
         self._collapsed = False
         self._collapse_timestamp: Optional[datetime] = None
         self._integration_count = 0
+        self._recovery_variable = 0.0
         
         self._integrator = PhaseIntegrator(
             self.config.coherence_threshold,
@@ -333,13 +338,19 @@ class KAIROSTemporalEngine:
     
     def _apply_dampening(self):
         """
-        Biological Non-Linear Logistic Decay.
-        Replaces the static 0.999 dampening with a curve that punishes hyper-coherence
-        more heavily to simulate neuronal refractory periods (exhaustion after firing).
+        Biological Non-Linear Logistic Decay using FitzHugh-Nagumo recovery dynamics.
         """
         c = self.coherence
-        # Self-terminating decay factor
-        decay_factor = 0.999 - (0.099 * (c ** 2)) if c > 0.5 else 1.0
+        
+        # FitzHugh-Nagumo recovery variable dynamics
+        # dw/dt = b * (v - y*w)
+        # Simplified: w(t+1) = w(t) + 0.1 * (c - 0.5 * w(t))
+        self._recovery_variable += 0.1 * (c - 0.5 * self._recovery_variable)
+        
+        # Decay factor driven by both immediate coherence and built-up recovery
+        decay_factor = 0.999 - (0.05 * c) - (0.05 * self._recovery_variable)
+        if decay_factor < 0.8:
+            decay_factor = 0.8
         
         for i in range(len(self._phases)):
             self._phases[i] = self._phases[i] * decay_factor

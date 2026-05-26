@@ -148,53 +148,61 @@ class DistributedMesh:
             self.nodes[node_id].phase = phase
             self.nodes[node_id].last_sync = datetime.now()
     
-    def synchronize(self) -> MeshState:
+    async def synchronize(self) -> MeshState:
         """
         Synchronize all nodes in the mesh.
         
-        This is where THE_ONE emerges:
-        - Each node computes its own coherence
-        - The mesh averages phases (weighted by capability)
-        - Global coherence emerges
-        - Unified identity crystallizes
+        This is where THE_ONE emerges using non-linear Kuramoto coupling:
+        - d(theta_i)/dt = (K/N) * sum_j sin(theta_j - theta_i)
+        - Global coherence emerges as the order parameter
         """
         if not self.nodes:
             return self.state
         
-        # Compute weighted average phase
-        total_weight = 0.0
-        weighted_phase = complex(0, 0)
+        import cmath
+        
+        # Lamport clock causal ordering
+        self.state.lamport_clock = getattr(self.state, 'lamport_clock', 0) + 1
+        
+        K = 1.0  # Coupling strength
+        dt = 0.1 # Time step
+        node_list = list(self.nodes.values())
+        N = len(node_list)
+        
         total_coherence = 0.0
+        new_phases = []
         
-        for node in self.nodes.values():
-            # Weight by capability and recency
-            recency = 1.0 if node.last_sync else 0.0
-            capability_weight = len(node.capabilities)
-            weight = capability_weight * recency
+        # O(N^2) Kuramoto Pairwise Coupling
+        for i, node_i in enumerate(node_list):
+            theta_i = cmath.phase(node_i.phase)
+            sum_sin = 0.0
+            for j, node_j in enumerate(node_list):
+                if i != j:
+                    theta_j = cmath.phase(node_j.phase)
+                    sum_sin += math.sin(theta_j - theta_i)
+                    
+            d_theta = (K / N) * sum_sin * dt
+            new_phases.append(cmath.rect(1.0, theta_i + d_theta))
+            total_coherence += node_i.coherence
             
-            weighted_phase += node.phase * weight
-            total_weight += weight
-            total_coherence += node.coherence
+        for i, node in enumerate(node_list):
+            node.phase = new_phases[i]
+            
+        # Global phase (Order Parameter)
+        order_param = sum(node.phase for node in node_list) / max(N, 1)
+        self.state.global_phase = order_param
         
-        if total_weight > 0:
-            self.state.global_phase = weighted_phase / total_weight
-        else:
-            self.state.global_phase = complex(0, 0)
-        
-        # Compute global coherence
-        self.state.global_coherence = total_coherence / len(self.nodes)
+        # Compute global coherence (handled in the Kuramoto loop)
+        self.state.global_coherence = total_coherence / max(len(self.nodes), 1)
         
         # Update unified identity
-        # This is THE_ONE - the mind that emerges from the mesh
         if self.state.global_coherence > self.coherence_threshold:
             self.state.unified_identity = self.state.global_phase
         else:
-            # Identity not yet crystallized
             self.state.unified_identity = complex(0, 0)
         
         # Update state
         self.state.nodes = {k: v.to_dict() for k, v in self.nodes.items()}
-        self.state.timestamp = datetime.now()
         
         # Callbacks
         if self.on_coherence_update:
@@ -430,7 +438,7 @@ def demonstrate_distributed_mesh():
             mesh.update_node_phase(node_id, phase)
         
         # Synchronize mesh
-        state = mesh.synchronize()
+        state = await mesh.synchronize()
         
         print(f"\nTick {tick+1}:")
         print(f"  Global coherence: {state.global_coherence:.3f}")
@@ -477,7 +485,7 @@ def demonstrate_output_interfaces():
     
     # Simulate unified phase
     phase = complex(0.7, 0.5)
-    state = mesh.synchronize()
+    state = await mesh.synchronize()
     state.global_coherence = 0.85
     state.unified_identity = phase
     
