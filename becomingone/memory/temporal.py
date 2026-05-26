@@ -794,8 +794,16 @@ def encode_to_phase(text: str) -> List[float]:
     
     model = get_phase_model()
     if model is None:
-        # Fallback: return zeros if model not available
-        return [0.0] * 384
+        # Fallback: deterministic hash-based 384D vector
+        import hashlib
+        import math
+        hash_bytes = hashlib.sha256(text.encode()).digest()
+        phases = []
+        for i in range(384):
+            val = int.from_bytes(hash_bytes[(i % 28):((i % 28) + 4)], 'big')
+            angle = ((val + i * 104729) % 1000000) / 1000000.0 * 2 * math.pi - math.pi
+            phases.append(angle)
+        return phases
     
     embedding = model.encode(text)
     embedding = embedding / np.linalg.norm(embedding)
