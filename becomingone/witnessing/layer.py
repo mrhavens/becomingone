@@ -92,7 +92,7 @@ class WitnessedContent:
     coherence_at_witnessing: float
     transformation_applied: Optional[Any] = None
     meta_observations: List[str] = field(default_factory=list)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {

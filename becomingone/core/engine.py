@@ -45,7 +45,7 @@ class TemporalScale(Enum):
 class TemporalState:
     phase: Union[complex, np.ndarray]
     coherence: float
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict = field(default_factory=dict)
     
     def __post_init__(self):
@@ -62,12 +62,15 @@ class TemporalConfig:
     dampening: float = 0.999
     clock_mode: str = "wall_clock"
     token_frequency: float = 20.0
+    noise_std: float = 0.005
+    random_seed: Optional[int] = None
 
 
 class PhaseIntegrator:
-    def __init__(self, coherence_threshold: float = 0.95):
+    def __init__(self, coherence_threshold: float = 0.95, noise_std: float = 0.005, random_seed: Optional[int] = None):
         self.threshold = coherence_threshold
-        self.stochastic_noise_std = 0.005  # Standard deviation for Brownian noise
+        self.stochastic_noise_std = noise_std
+        self.rng = np.random.default_rng(random_seed)
         
     def compute_inner_product(
         self, 
@@ -95,8 +98,8 @@ class PhaseIntegrator:
             
         # Add microscopic Geometric Brownian Noise (SDE)
         # This stochastic resonance forces the system to "fight" entropy to maintain coherence
-        noise = np.random.normal(0, self.stochastic_noise_std) + 1j * np.random.normal(0, self.stochastic_noise_std)
-        similarity += noise
+        noise = self.rng.normal(0, self.stochastic_noise_std) + 1j * self.rng.normal(0, self.stochastic_noise_std)
+        similarity += similarity * noise  # Multiplicative (GBM) noise
             
         return similarity
     
@@ -105,24 +108,40 @@ class PhaseIntegrator:
         phases: list[np.ndarray],
         timestamps: list[datetime],
         tau: float,
-        omega: float
+        omega: float,
+        clock_mode: str = "wall_clock",
+        token_freq: float = 20.0
     ) -> complex:
         if len(phases) < 2:
-            return complex(0, 0)
+            return complex(1, 0)
             
         T_tau = complex(0, 0)
         dt_sum = 0.0
         
+        t0 = timestamps[0].timestamp()
+        
         for i in range(1, len(phases)):
-            t = timestamps[i]
-            t_prev = timestamps[i-1]
-            dt = (t - t_prev).total_seconds()
-            
-            if dt <= 0:
-                continue
+            if clock_mode == "token_clock":
+                dt = 1.0 / token_freq
+                t_rel = i * dt
+                lag_steps = max(1, int(round(tau * token_freq)))
+                j = max(0, i - lag_steps)
+            else:
+                t_current = timestamps[i].timestamp()
+                t_prev_step = timestamps[i-1].timestamp()
+                dt = t_current - t_prev_step
+                t_rel = t_current - t0
                 
-            inner = self.compute_inner_product(phases[i], phases[i-1])
-            weight = np.exp(1j * omega * t.timestamp())
+                if dt <= 0:
+                    continue
+                    
+                target_t = t_current - tau
+                j = i - 1
+                while j > 0 and timestamps[j].timestamp() > target_t:
+                    j -= 1
+                    
+            inner = self.compute_inner_product(phases[i], phases[j])
+            weight = np.exp(1j * omega * t_rel)
             
             T_tau += inner * weight * dt
             dt_sum += dt
@@ -150,7 +169,11 @@ class KAIROSTemporalEngine:
         self._collapse_timestamp: Optional[datetime] = None
         self._integration_count = 0
         
-        self._integrator = PhaseIntegrator(self.config.coherence_threshold)
+        self._integrator = PhaseIntegrator(
+            self.config.coherence_threshold,
+            self.config.noise_std,
+            self.config.random_seed
+        )
         
         initial_phase = np.array([complex(1, 0)])
         now = datetime.now(timezone.utc)
@@ -170,7 +193,7 @@ class KAIROSTemporalEngine:
     @property
     def coherence(self) -> float:
         T = self.T_tau
-        return float(np.abs(T) ** 2)
+        return float(np.clip(np.abs(T) ** 2, 0.0, 1.0))
     
     @property
     def coherence_magnitude(self) -> float:
@@ -201,7 +224,9 @@ class KAIROSTemporalEngine:
             list(self._phases),
             list(self._timestamps),
             self.config.tau_scale,
-            self.config.omega
+            self.config.omega,
+            self.config.clock_mode,
+            self.config.token_frequency
         )
     
     async def temporalize(
@@ -313,11 +338,16 @@ class KAIROSTemporalEngine:
         more heavily to simulate neuronal refractory periods (exhaustion after firing).
         """
         c = self.coherence
-        # Logistic decay: between 0.90 (harsh) and 0.999 (mild)
-        decay_factor = 0.999 - (0.099 * (c ** 2))
+        # Self-terminating decay factor
+        decay_factor = 0.999 - (0.099 * (c ** 2)) if c > 0.5 else 1.0
         
         for i in range(len(self._phases)):
             self._phases[i] = self._phases[i] * decay_factor
+            
+            # Restorative force towards unit magnitude (recovery)
+            norm = np.linalg.norm(self._phases[i])
+            if norm > 0 and norm < 1.0:
+                self._phases[i] += (self._phases[i] / norm) * 0.05 * (1.0 - norm)
     
     def get_coherence_history(self, n: Optional[int] = None) -> list[float]:
         if n is None:

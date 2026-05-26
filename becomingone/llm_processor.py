@@ -127,7 +127,7 @@ class LLMCoherenceEngine:
         # Attention diversity = entropy of weights
         weights = pattern.attention_weights
         import math
-        entropy = -sum(w * (w + 1e-10) * math.log2(w + 1e-10) for w in weights if w > 0)
+        entropy = -sum(w * math.log2(w + 1e-10) for w in weights if w > 0)
         diversity = min(entropy / len(weights), 1.0)
         
         # Combine
