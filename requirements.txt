@@ -30,7 +30,7 @@ mypy>=1.4.0
 sphinx>=7.1.0
 
 # Optional: For Rust extension
-maturin>=1.0.0  # For building becomingone-rs
+# maturin>=1.0.0  # For building becomingone-rs
 
 # Development tools
 black>=23.0.0

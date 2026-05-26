@@ -51,7 +51,7 @@ async def test_full_fieldprint_pipeline(tmp_path):
         ]
         
         for phrase in phrases:
-            state = await engine.temporalize(phrase)
+            state = engine.temporalize(phrase)
             
         # 3. Force Memory Encoding
         # The coherence should have spiked. We manually encode a core memory.

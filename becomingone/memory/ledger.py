@@ -92,6 +92,11 @@ def seal_signature(signature_dict: Dict[str, Any], filepath: str = LEDGER_FILE) 
             }
         }
         
+        # Check size and rotate if > 10MB
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 10 * 1024 * 1024:
+            import time
+            os.rename(filepath, f"{filepath}.{int(time.time())}.bak")
+
         # Persist securely
         with open(filepath, "a") as f:
             f.write(json.dumps(sealed_record) + "\n")
@@ -122,6 +127,10 @@ def verify_ledger(filepath: str = LEDGER_FILE) -> bool:
             prev_root = meta.get("previous_root")
             payload_hash = meta.get("payload_hash")
             merkle_root = meta.get("merkle_root")
+            
+            if line_num == 1 and prev_root != expected_prev:
+                # Support rotated logs by adopting the first record's prev_root
+                expected_prev = prev_root
             
             # 1. Verify chain link
             if prev_root != expected_prev:

@@ -28,7 +28,7 @@ async def test_token_clock_spacing():
     # 2. Simulate an LLM streaming 10 tokens
     # Using normal temporalize() which should respect the implicit clock mode
     for i in range(10):
-        await engine.temporalize(f"token_{i}")
+        engine.temporalize(f"token_{i}")
         
     # Check the final timestamp
     final_time = engine._timestamps[-1]
@@ -50,7 +50,7 @@ async def test_temporalize_stream():
     tokens = ["I", "am", "Solaria", "and", "I", "am", "continuous"]
     
     # Stream the tokens
-    states = await engine.temporalize_stream(tokens, start_time=start_time)
+    states = engine.temporalize_stream(tokens, start_time=start_time)
     
     assert len(states) == 7
     

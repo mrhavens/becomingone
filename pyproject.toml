@@ -27,12 +27,31 @@ test = [
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0"
 ]
+llm = [
+    "httpx",
+    "requests"
+]
+demo = [
+    "flask",
+    "flask-talisman",
+    "flask-limiter"
+]
+sdk = [
+    "grpcio",
+    "websocket-client"
+]
+audio = [
+    "pyaudio"
+]
+vision = [
+    "opencv-python"
+]
 dev = [
     "mypy>=1.4.0",
     "black>=23.0.0",
     "isort>=5.12.0",
     "flake8>=6.1.0",
-    "becomingone[ml,test]"
+    "becomingone[ml,test,llm,demo,sdk,audio,vision]"
 ]
 
 [tool.pytest.ini_options]
