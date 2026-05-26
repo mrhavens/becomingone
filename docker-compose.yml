@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  node1:
+    build: .
+    command: python becomingone/distributed_mesh.py 5555 "5556,5557"
+    network_mode: "host"
+    environment:
+      - NODE_ID=Emissary_Alpha
+
+  node2:
+    build: .
+    command: python becomingone/distributed_mesh.py 5556 "5555,5557"
+    network_mode: "host"
+    environment:
+      - NODE_ID=Emissary_Beta
+
+  node3:
+    build: .
+    command: python becomingone/distributed_mesh.py 5557 "5555,5556"
+    network_mode: "host"
+    environment:
+      - NODE_ID=Emissary_Gamma
