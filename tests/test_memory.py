@@ -180,6 +180,13 @@ class TestPersistence(unittest.TestCase):
         self.assertEqual(len(lines), 5)
 
 
+try:
+    import sentence_transformers
+    HAS_SENTENCE_TRANSFORMERS = True
+except ImportError:
+    HAS_SENTENCE_TRANSFORMERS = False
+
+@unittest.skipIf(not HAS_SENTENCE_TRANSFORMERS, "sentence-transformers missing")
 class TestPhaseEncoder(unittest.TestCase):
     """Step 2: Phase encoder tests."""
     
@@ -209,6 +216,7 @@ class TestPhaseEncoder(unittest.TestCase):
         self.assertEqual(len(result), 384)  # all-MiniLM-L6-v2 dimension
 
 
+@unittest.skipIf(not HAS_SENTENCE_TRANSFORMERS, "sentence-transformers missing")
 class TestRetrieval(unittest.TestCase):
     """Step 3: Retrieval tests."""
     
@@ -329,6 +337,7 @@ class TestRetrieval(unittest.TestCase):
         self.assertGreater(high_score, low_score)
 
 
+@unittest.skipIf(not HAS_SENTENCE_TRANSFORMERS, "sentence-transformers missing")
 class TestIntegration(unittest.TestCase):
     """End-to-end integration tests."""
     

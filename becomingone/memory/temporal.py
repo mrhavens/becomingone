@@ -27,6 +27,9 @@ import math
 import json
 import hashlib
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 from ..core.engine import KAIROSTemporalEngine, TemporalState
 from ..core.coherence import CoherenceCalculator, CollapseCondition
@@ -232,7 +235,7 @@ class TemporalMemory:
         force_attention: bool = False,
         origin: str = "user",
         parent_id: Optional[str] = None
-    ) -> TemporalSignature:
+    ) -> Optional[TemporalSignature]:
         """
         Encode a temporal state into a persistent memory.
         
@@ -754,6 +757,7 @@ def persist_signature(signature: TemporalSignature, filepath: str = "memory.json
         seal_signature(signature.to_dict(), filepath)
     except ImportError:
         # Fallback if ledger is missing
+        logger.warning(f"Ledger module missing. Falling back to unsigned storage for {signature.signature_id}")
         with open(filepath, "a") as f:
             f.write(json.dumps(signature.to_dict()) + "\n")
 

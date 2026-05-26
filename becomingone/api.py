@@ -139,6 +139,8 @@ def init_engine(
         }
     }
     
+    engine = master._engine
+    
     logger.info("BECOMINGONE Engine initialized successfully")
     return engine
 
@@ -265,10 +267,10 @@ async def reset_engine(request: web.Request) -> web.Response:
     """Reset the KAIROS engine to initial state."""
     global _engine_components, _engine_lock
     
+    import os
     auth_header = request.headers.get("Authorization")
-    if not auth_header or auth_header != "Bearer admin-token-required":
-        # In a real system, validate the token properly. 
-        # For the prototype, we return 401 if it's completely unprotected to fulfill the audit requirement.
+    expected_token = os.environ.get("RESET_ADMIN_TOKEN")
+    if not auth_header or not expected_token or auth_header != f"Bearer {expected_token}":
         return web.json_response({"error": "Unauthorized. /reset requires admin token."}, status=401)
         
     async with _engine_lock:

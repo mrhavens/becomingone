@@ -92,7 +92,7 @@ class WitnessedContent:
     coherence_at_witnessing: float
     transformation_applied: Optional[Any] = None
     meta_observations: List[str] = field(default_factory=list)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -262,8 +262,11 @@ class WitnessingLayer:
         witness.last_observed = datetime.now(timezone.utc)
         self.total_observations += 1
         
-        # Store
+        # Store and bound
         self.witnessed_content[content_id] = witnessed
+        if len(self.witnessed_content) > 10000:
+            oldest_key = next(iter(self.witnessed_content))
+            del self.witnessed_content[oldest_key]
         
         return witnessed
     

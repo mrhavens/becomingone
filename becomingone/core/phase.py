@@ -44,7 +44,7 @@ class PhaseState:
     """
     value: complex
     angle: float
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = "unknown"
     
     def __post_init__(self):

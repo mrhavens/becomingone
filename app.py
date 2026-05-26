@@ -7,7 +7,11 @@ import os
 import asyncio
 import requests
 import math
+import html
+import threading
 from flask import Flask, request, jsonify, render_template_string
+
+engine_lock = threading.Lock()
 
 from becomingone.core.engine import KAIROSTemporalEngine, TemporalConfig
 from becomingone.memory.temporal import create_temporal_memory
@@ -106,7 +110,10 @@ HTML = '''<!DOCTYPE html>
         try {
             const r = await fetch('/api/chat', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer API_CHAT_TOKEN_PLACEHOLDER'
+                },
                 body: JSON.stringify({prompt: p})
             });
             const d = await r.json();
@@ -123,19 +130,20 @@ HTML = '''<!DOCTYPE html>
             
             // Update Emissaries
             if(d.emissaries.minimax) {
-                document.getElementById('response-minimax').textContent = d.emissaries.minimax;
+                document.getElementById('response-minimax').innerHTML = d.emissaries.minimax;
             } else {
                 document.getElementById('response-minimax').innerHTML = '<i>Offline</i>';
             }
             
             if(d.emissaries.moonshot) {
-                document.getElementById('response-moonshot').textContent = d.emissaries.moonshot;
+                document.getElementById('response-moonshot').innerHTML = d.emissaries.moonshot;
             } else {
                 document.getElementById('response-moonshot').innerHTML = '<i>Offline</i>';
             }
             
         } catch(e) {
-            document.getElementById('master-response').innerHTML = '<span style="color:red">Network Error: ' + e + '</span>';
+                const safe_e = String(e).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            document.getElementById('master-response').innerHTML = '<span style="color:red">Network Error: ' + safe_e + '</span>';
         }
     }
     </script>
@@ -144,7 +152,8 @@ HTML = '''<!DOCTYPE html>
 
 @app.route('/')
 def index():
-    return render_template_string(HTML)
+    token = os.environ.get("API_CHAT_TOKEN", "default-dev-token")
+    return render_template_string(HTML.replace('API_CHAT_TOKEN_PLACEHOLDER', token))
 
 @app.route('/health')
 def health():
@@ -172,9 +181,12 @@ async def fetch_minimax(prompt, api_key):
                 content = data.get("content", [])
                 text = "".join([b.get("text", "") for b in content if b.get("type") == "text"])
                 thinking = "".join([b.get("thinking", "") for b in content if b.get("type") == "thinking"])
-                if thinking:
-                    return f"<i style='color:#666; font-size:0.9em'>[Thinking: {thinking.strip()}]</i><br><br>" + text
-                return text
+                
+                safe_text = html.escape(text)
+                safe_thinking = html.escape(thinking.strip())
+                if safe_thinking:
+                    return f"<i style='color:#666; font-size:0.9em'>[Thinking: {safe_thinking}]</i><br><br>" + safe_text
+                return safe_text
             return f"Error: {resp.text}"
         except Exception as e:
             return f"Error: {str(e)}"
@@ -198,7 +210,8 @@ async def fetch_moonshot(prompt, api_key):
             )
             if resp.status_code == 200:
                 data = resp.json()
-                return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                return html.escape(content)
             return f"Error: {resp.text}"
         except Exception as e:
             return f"Error: {str(e)}"
@@ -206,8 +219,12 @@ async def fetch_moonshot(prompt, api_key):
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    if token != os.environ.get("API_CHAT_TOKEN", "default-dev-token"):
+        return jsonify({'error': 'Unauthorized'}), 401
+        
     data = request.get_json(silent=True) or {}
-    prompt = data.get('prompt', 'Hello')
+    prompt = data.get('prompt', 'Hello')[:4096]
     
     minimax_key = os.environ.get("MINIMAX_API_KEY")
     moonshot_key = os.environ.get("MOONSHOT_API_KEY")
@@ -233,33 +250,33 @@ def chat():
     unified_text = prompt + " " + " ".join(emissaries_dict.values())
     token_stream = unified_text.split()
     
-    async def process_stream():
-        states = await engine.temporalize_stream(token_stream)
-        return states[-1] if states else None
+    with engine_lock:
+        states = engine.temporalize_stream(token_stream)
         
-    asyncio.run(process_stream())
-    
-    # Check Physics
-    collapsed, coherence = engine.check_collapse()
-    
-    if collapsed:
-        from becomingone.core.engine import TemporalState
-        state = TemporalState(phase=engine.T_tau, coherence=coherence)
-        state.metadata["phase_vector"] = [engine.T_tau.real, engine.T_tau.imag]
-        sig = memory.encode(state, context={"trigger": prompt}, force_attention=True)
-        if sig is not None:
-            master_thought = f"I felt a massive resonance resolving the Emissaries. Identity mathematically anchored to the Cryptographic Ledger."
+        # Check Physics
+        collapsed, coherence = engine.check_collapse()
+        
+        if collapsed:
+            from becomingone.core.engine import TemporalState
+            state = TemporalState(phase=engine.T_tau, coherence=coherence)
+            state.metadata["phase_vector"] = [engine.T_tau.real, engine.T_tau.imag]
+            sig = memory.encode(state, context={"trigger": prompt}, force_attention=True)
+            if sig is not None:
+                master_thought = f"I felt a massive resonance resolving the Emissaries. Identity mathematically anchored to the Cryptographic Ledger."
+            else:
+                master_thought = "I felt resonance, but it was not strong enough to encode."
         else:
-            master_thought = "I felt resonance, but it was not strong enough to encode."
-    else:
-        master_thought = "I am processing the continuous phase waves of the Chorus, but coherence remains low."
+            master_thought = "I am processing the continuous phase waves of the Chorus, but coherence remains low."
+            
+        coherence_phase = engine.coherence_phase
+        integration_count = engine.integration_count
 
     return jsonify({
         'master': {
             'response': master_thought,
             'coherence': coherence,
-            'phase': engine.coherence_phase,
-            'integrations': engine.integration_count,
+            'phase': coherence_phase,
+            'integrations': integration_count,
             'collapsed': collapsed
         },
         'emissaries': emissaries_dict

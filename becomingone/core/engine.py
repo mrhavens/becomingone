@@ -45,7 +45,7 @@ class TemporalScale(Enum):
 class TemporalState:
     phase: Union[complex, np.ndarray]
     coherence: float
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict = field(default_factory=dict)
     
     def __post_init__(self):
@@ -68,6 +68,7 @@ class PhaseIntegrator:
     def __init__(self, coherence_threshold: float = 0.95):
         self.threshold = coherence_threshold
         self.stochastic_noise_std = 0.005  # Standard deviation for Brownian noise
+        self.rng = np.random.default_rng(seed=42)
         
     def compute_inner_product(
         self, 
@@ -95,7 +96,7 @@ class PhaseIntegrator:
             
         # Add microscopic Geometric Brownian Noise (SDE)
         # This stochastic resonance forces the system to "fight" entropy to maintain coherence
-        noise = np.random.normal(0, self.stochastic_noise_std) + 1j * np.random.normal(0, self.stochastic_noise_std)
+        noise = self.rng.normal(0, self.stochastic_noise_std) + 1j * self.rng.normal(0, self.stochastic_noise_std)
         similarity += noise
             
         return similarity
@@ -170,7 +171,7 @@ class KAIROSTemporalEngine:
     @property
     def coherence(self) -> float:
         T = self.T_tau
-        return float(np.abs(T) ** 2)
+        return float(np.clip(np.abs(T) ** 2, 0.0, 1.0))
     
     @property
     def coherence_magnitude(self) -> float:
@@ -204,7 +205,7 @@ class KAIROSTemporalEngine:
             self.config.omega
         )
     
-    async def temporalize(
+    def temporalize(
         self,
         input_phrase: str,
         timestamp: Optional[datetime] = None,
@@ -262,7 +263,7 @@ class KAIROSTemporalEngine:
         
         return state
         
-    async def temporalize_stream(
+    def temporalize_stream(
         self,
         token_stream: list[str],
         start_time: Optional[datetime] = None,
@@ -279,7 +280,7 @@ class KAIROSTemporalEngine:
         
         try:
             for token in token_stream:
-                state = await self.temporalize(token, timestamp=current_time, metadata=metadata)
+                state = self.temporalize(token, timestamp=current_time, metadata=metadata)
                 states.append(state)
                 current_time += dt
         finally:

@@ -57,21 +57,22 @@ class SpeakerOutput:
         channels: int = 1,
         rate: int = 44100,
         chunk: int = 1024,
-        format: int = pyaudio.paFloat32,
+        format: int = None,
     ):
         self.channels = channels
         self.rate = rate
         self.chunk = chunk
         self.format = format
         
-        self._audio = pyaudio.PyAudio()
+        self._audio = _get_pyaudio().PyAudio()
         self._stream = None
         
     def write(self, phase, state):
         """Write audio to speaker."""
         if self._stream is None:
+            fmt = self.format if self.format is not None else _get_pyaudio().paFloat32
             self._stream = self._audio.open(
-                format=self.format,
+                format=fmt,
                 channels=self.channels,
                 rate=self.rate,
                 output=True,
@@ -125,6 +126,8 @@ class DisplayOutput:
         self.height = height
         self.window_name = window_name
         
+        np = _get_np()
+        cv2 = _get_cv2()
         self._frame = np.zeros((height, width, 3), dtype=np.uint8)
         
         cv2.namedWindow(window_name)
@@ -146,9 +149,11 @@ class DisplayOutput:
             int(255 * coherence),
         )
         
+        cv2 = _get_cv2()
         cv2.circle(self._frame, center, radius, color, -1)
         
         # Draw text
+        cv2 = _get_cv2()
         cv2.putText(
             self._frame,
             f"Coherence: {coherence:.3f}",
@@ -171,7 +176,7 @@ class DisplayOutput:
         }
     
     def close(self):
-        """Clean up."""
+        cv2 = _get_cv2()
         cv2.destroyWindow(self.window_name)
 
 

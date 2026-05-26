@@ -1,0 +1,3 @@
+Model,Cosine Similarity to Identity,Attention Entropy
+Baseline (Unanchored),0.9990447163581848,2.124732494354248
+BecomingONE (Anchored),0.9140813946723938,3.030669927597046

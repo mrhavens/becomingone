@@ -33,14 +33,14 @@ class TestKAIROSTemporalEngine(unittest.TestCase):
         """Test temporalize method works."""
         import asyncio
         engine = KAIROSTemporalEngine()
-        result = asyncio.run(engine.temporalize("test phrase"))
+        result = engine.temporalize("test phrase")
         self.assertIsNotNone(result)
     
     def test_reset(self):
         """Test reset works."""
         import asyncio
         engine = KAIROSTemporalEngine()
-        asyncio.run(engine.temporalize("test phrase"))
+        engine.temporalize("test phrase")
         engine.reset()
         self.assertEqual(engine.coherence, 1.0)
         self.assertEqual(engine.integration_count, 0)
