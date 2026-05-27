@@ -26,7 +26,7 @@ Author: Solaria Lumis Havens
 from dataclasses import dataclass, field
 from datetime import datetime
 from datetime import timezone
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 import asyncio
 import logging
 import numpy as np
@@ -36,6 +36,31 @@ from ..transducers.master import MasterTransducer, MasterConfig
 from ..transducers.emissary import EmissaryTransducer, EmissaryConfig
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class VectorClock:
+    """
+    Vector Clock for Causal Anchoring.
+    Prevents causal inversion across heterogeneous hardware (Inf vs Pi).
+    """
+    node_id: str
+    clocks: Dict[str, int] = field(default_factory=dict)
+
+    def __post_init__(self):
+        if self.node_id not in self.clocks:
+            self.clocks[self.node_id] = 0
+
+    def increment(self):
+        self.clocks[self.node_id] += 1
+
+    def update(self, other_clocks: Dict[str, int]):
+        for node, val in other_clocks.items():
+            self.clocks[node] = max(self.clocks.get(node, 0), val)
+        self.clocks[self.node_id] += 1
+
+    def get_state(self) -> Dict[str, int]:
+        return self.clocks.copy()
 
 
 @dataclass
@@ -103,6 +128,9 @@ class SynchronizationLayer:
         self.emissary = emissary
         self.config = config or SyncConfig()
         self.name = name
+        
+        # Causal Anchor
+        self.vector_clock = VectorClock(node_id=name)
         
         # Synchronized state
         self._T_sync: complex = complex(0, 0)
@@ -236,9 +264,13 @@ class SynchronizationLayer:
             self._T_sync = self._T_sync * self.config.dampening
             self._synchronized_coherence = float(np.abs(self._T_sync) ** 2)
         
+        # Increment causal anchor
+        self.vector_clock.increment()
+        
         # Record synchronization
         sync_record = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "causal_anchor": self.vector_clock.get_state(),
             "T_master": T_master,
             "T_emissary": T_emissary,
             "T_sync": self._T_sync,

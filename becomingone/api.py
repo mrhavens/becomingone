@@ -52,7 +52,7 @@ logging.basicConfig(
 logger.add(sys.stderr, format="{time} | {level} | {message}")
 
 # Global engine instance
-engine: Optional[KAIROSTemporalEngine] = None
+# engine variable removed to prevent global state shadowing
 _engine_components: Optional[Dict[str, Any]] = None
 _engine_lock = asyncio.Lock()
 

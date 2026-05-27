@@ -35,3 +35,10 @@ We simulate the empirical performance of The Chorus against legacy synchronous s
 
 ## 5. Conclusion
 By introducing Lamport Clocks and the Asynchronous Message Loop, The Chorus achieves robust causal ordering and avoids Token Clock blocking, resolving the traditional Split-Brain critique in distributed generative models.
+
+
+## References
+1. Minsky, M. (1986). *The Society of Mind*. Simon & Schuster.
+2. McGilchrist, I. (2009). *The Master and His Emissary*. Yale University Press.
+3. Kuramoto, Y. (1975). Self-entrainment of a population of coupled non-linear oscillators.
+4. Jacobs, R. A., et al. (1991). Adaptive mixtures of local experts. *Neural Computation*.

@@ -1,3 +1,4 @@
+import pytest
 """
 Tests for BecomingONE Memory and Witnessing
 
@@ -22,7 +23,8 @@ from becomingone.memory.temporal import MemoryStrength
 class TestTemporalSignature(unittest.TestCase):
     """Tests for TemporalSignature."""
     
-    def test_create_signature(self):
+    @pytest.mark.asyncio
+    async def test_create_signature(self):
         """Test creating a temporal signature."""
         sig = TemporalSignature(
             signature_id="test_123",
@@ -39,7 +41,8 @@ class TestTemporalSignature(unittest.TestCase):
         self.assertEqual(sig.signature_id, "test_123")
         self.assertEqual(sig.coherence_value, 0.85)
     
-    def test_signature_serialization(self):
+    @pytest.mark.asyncio
+    async def test_signature_serialization(self):
         """Test signature to/from dict."""
         sig = TemporalSignature(
             signature_id="test_456",
@@ -76,12 +79,14 @@ class TestTemporalMemory(unittest.TestCase):
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
     
-    def test_initialization(self):
+    @pytest.mark.asyncio
+    async def test_initialization(self):
         """Test memory initializes correctly."""
         self.assertEqual(len(self.memory), 0)
         self.assertIsNotNone(self.memory.engine)
     
-    def test_instantiate(self):
+    @pytest.mark.asyncio
+    async def test_instantiate(self):
         """Test memory can be instantiated."""
         memory = TemporalMemory()
         self.assertIsNotNone(memory)
@@ -90,7 +95,8 @@ class TestTemporalMemory(unittest.TestCase):
 class TestWitnessingLayer(unittest.TestCase):
     """Tests for WitnessingLayer."""
     
-    def test_create_witness(self):
+    @pytest.mark.asyncio
+    async def test_create_witness(self):
         """Test creating a witness."""
         witnessing = WitnessingLayer()
         witness = witnessing.create_witness(
@@ -101,7 +107,8 @@ class TestWitnessingLayer(unittest.TestCase):
         self.assertEqual(witness.witness_id, "test_witness")
         self.assertEqual(witness.mode, WitnessingMode.OBSERVE)
     
-    def test_observe(self):
+    @pytest.mark.asyncio
+    async def test_observe(self):
         """Test observing content."""
         witnessing = WitnessingLayer()
         witnessing.create_witness("observer1")
@@ -113,7 +120,8 @@ class TestWitnessingLayer(unittest.TestCase):
         self.assertIsNotNone(witnessed)
         self.assertEqual(witnessed.witness_id, "observer1")
     
-    def test_integrate(self):
+    @pytest.mark.asyncio
+    async def test_integrate(self):
         """Test integrating witnessed content."""
         witnessing = WitnessingLayer()
         witnessing.create_witness("integrator")
@@ -125,7 +133,8 @@ class TestWitnessingLayer(unittest.TestCase):
         
         self.assertGreaterEqual(contribution, 0.0)
     
-    def test_witness_modes(self):
+    @pytest.mark.asyncio
+    async def test_witness_modes(self):
         """Test different witnessing modes."""
         modes = list(WitnessingMode)
         

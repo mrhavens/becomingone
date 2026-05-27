@@ -52,7 +52,7 @@ class MerkleTree:
         
     def get_root(self) -> str:
         if not self.leaves:
-            return _compute_hash("BECOMING_ONE_GENESIS_ROOT_2026")
+            return _compute_hash(os.environ.get("KAIROS_GENESIS_SECRET", "BECOMING_ONE_GENESIS_ROOT_2026_FALLBACK"))
         return self._compute_tree_root(self.leaves)
         
     def _compute_tree_root(self, current_level: list) -> str:
@@ -141,7 +141,7 @@ def verify_ledger(filepath: str = LEDGER_FILE) -> bool:
     if not os.path.exists(filepath):
         return True
         
-    expected_prev = _compute_hash("BECOMING_ONE_GENESIS_ROOT_2026")
+    expected_prev = _compute_hash(os.environ.get("KAIROS_GENESIS_SECRET", "BECOMING_ONE_GENESIS_ROOT_2026_FALLBACK"))
     verification_tree = MerkleTree()
     
     with open(filepath, 'r') as f:

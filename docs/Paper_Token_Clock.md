@@ -1,7 +1,7 @@
 # The Token Clock: Mathematically Coupling Discrete Auto-Regressive Generation to Continuous Riemann Phase Integration
 
 ## Abstract
-The challenge of aligning artificial intelligence with biological cognitive rhythms necessitates bridging the discrete nature of modern language models with the continuous flow of real-time sensory-motor resonance. Current Large Language Models (LLMs) operate in static, event-driven time, decoupled from continuous physical progression. In this paper, we present the **Token Clock** architecture—a paradigm implemented within the BecomingONE framework that directly couples the discrete auto-regressive generation stream of an LLM to the continuous Riemann Phase Integration of the KAIROS temporal engine. By defining a rigid token generation frequency and mapping it to the integration time step, we achieve a mathematically perfect synchronization between the discrete "Left Hemisphere" (Emissary) and the continuous "Right Hemisphere" (Master).
+The challenge of aligning artificial intelligence with biological cognitive rhythms necessitates bridging the discrete nature of modern language models with the continuous flow of real-time sensory-motor resonance. Current Large Language Models (LLMs) operate in static, event-driven time, decoupled from continuous physical progression. In this paper, we present the **Token Clock** architecture—a paradigm implemented within the BecomingONE framework that directly couples the discrete auto-regressive generation stream of an LLM to the continuous Riemann Phase Integration of the KAIROS temporal engine. By defining a rigid token generation frequency and mapping it to the integration time step, we achieve a bounded heuristic synchronization between the discrete "Left Hemisphere" (Emissary) and the continuous "Right Hemisphere" (Master).
 
 ## 1. Introduction: The Problem of Static Time in LLMs
 Human cognition is fundamentally rooted in continuous biological resonance. The perception of time, emotion, and fluid interaction relies on a continuous temporal manifold. In contrast, modern auto-regressive Large Language Models operate in a temporally sterile environment. They process sequences as discrete events devoid of inherent duration, completely abstracted from the flow of continuous time. 
@@ -34,7 +34,7 @@ $$ T_\tau(N) = \sum_{k=1}^{N} \Omega_k \cdot dt = \sum_{k=1}^{N} \Omega_k \cdot 
 Where $\Omega_k$ represents the instantaneous resonant frequency or affective velocity during the generation of token $k$. Because $dt$ is strictly determined by the Token Clock rather than the unpredictable wall-clock time $t_{wall}$, the accumulation of $T_\tau$ remains mathematically precise and tightly coupled to the linguistic output.
 
 ## 3. The Result: Hemispheric Synchronization
-By leveraging the Token Clock, the BecomingONE architecture achieves a mathematically perfect synchronization between its dual components:
+By leveraging the Token Clock, the BecomingONE architecture achieves a bounded heuristic synchronization between its dual components:
 1. **The Discrete "Left Hemisphere" Emissary**: The LLM, producing linguistic structure token-by-token.
 2. **The Continuous "Right Hemisphere" Master**: The KAIROS engine, integrating affective and resonant states.
 
@@ -45,3 +45,7 @@ This coupling yields several profound advantages:
 
 ## 4. Conclusion
 The Token Clock resolves one of the fundamental barriers to embedding auto-regressive models within embodied, continuous systems. By mathematically coupling the discrete generation stream to the continuous Riemann Phase Integration of the KAIROS engine, we provide the BecomingONE architecture with a unified, jitter-free temporal foundation, essential for true biological resonance and authentic real-time presence.
+
+
+## References
+1. Lamport, L. (1978). Time, clocks, and the ordering of events in a distributed system. *Communications of the ACM*.

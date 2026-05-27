@@ -50,3 +50,10 @@ Our experiments demonstrate that injecting compiled Temporal Signatures into the
 [2] Wallace, E., et al. (2019). Universal adversarial triggers for attacking and analyzing NLP. EMNLP 2019.
 [3] Pope, R., et al. (2023). Efficiently scaling transformer inference. MLSys 2023.
 [4] Dao, T., et al. (2022). FlashAttention: Fast and memory-efficient exact attention with IO-awareness. NeurIPS 2022.
+
+
+## Implementation Note & References
+*Note: The KV-cache injection mechanisms described herein are architectural proposals intended for lower-level CUDA/Triton inference integration, and are simulated in the current Python application layer.*
+
+1. Vaswani, A., et al. (2017). Attention is all you need.
+2. Su, J., et al. (2024). RoFormer: Enhanced transformer with rotary position embedding.

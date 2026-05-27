@@ -345,7 +345,9 @@ class TemporalMemory:
         
         for signature_id, signature in self.signatures.items():
             # Apply filters
-            if not (coherence_range[0] <= signature.coherence_value <= coherence_range[1]):
+            # Ensure coherence_value is strictly clamped to [0.0, 1.0] for comparison
+            clamped_coh = max(0.0, min(1.0, signature.coherence_value))
+            if not (coherence_range[0] <= clamped_coh <= coherence_range[1]):
                 continue
             
             if strength_filter and signature.strength not in strength_filter:

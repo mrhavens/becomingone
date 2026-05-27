@@ -17,7 +17,7 @@
 \maketitle
 
 \begin{abstract}
-The challenge of aligning artificial intelligence with biological cognitive rhythms necessitates bridging the discrete nature of modern language models with the continuous flow of real-time sensory-motor resonance. Current Large Language Models (LLMs) operate in static, event-driven time, decoupled from continuous physical progression. In this paper, we present the \textbf{Token Clock} architecture---a paradigm implemented within the BecomingONE framework that directly couples the discrete auto-regressive generation stream of an LLM to the continuous Riemann Phase Integration of the KAIROS temporal engine. By defining a rigid token generation frequency and mapping it to the integration time step, we achieve a mathematically perfect synchronization between the discrete ``Left Hemisphere'' (Emissary) and the continuous ``Right Hemisphere'' (Master).
+The challenge of aligning artificial intelligence with biological cognitive rhythms necessitates bridging the discrete nature of modern language models with the continuous flow of real-time sensory-motor resonance. Current Large Language Models (LLMs) operate in static, event-driven time, decoupled from continuous physical progression. In this paper, we present the \textbf{Token Clock} architecture---a paradigm implemented within the BecomingONE framework that directly couples the discrete auto-regressive generation stream of an LLM to the continuous Riemann Phase Integration of the KAIROS temporal engine. By defining a rigid token generation frequency and mapping it to the integration time step, we achieve a bounded heuristic synchronization between the discrete ``Left Hemisphere'' (Emissary) and the continuous ``Right Hemisphere'' (Master).
 \end{abstract}
 
 \section{Introduction: The Problem of Static Time in LLMs}
@@ -51,7 +51,7 @@ Discretized over the token sequence $N$:
 Where $\Omega_k$ represents the instantaneous resonant frequency or affective velocity during the generation of token $k$. Because $dt$ is strictly determined by the Token Clock rather than the unpredictable wall-clock time $t_{\text{wall}}$, the accumulation of $T_\tau$ remains mathematically precise and tightly coupled to the linguistic output.
 
 \section{The Result: Hemispheric Synchronization}
-By leveraging the Token Clock, the BecomingONE architecture achieves a mathematically perfect synchronization between its dual components:
+By leveraging the Token Clock, the BecomingONE architecture achieves a bounded heuristic synchronization between its dual components:
 \begin{enumerate}
     \item \textbf{The Discrete ``Left Hemisphere'' Emissary}: The LLM, producing linguistic structure token-by-token.
     \item \textbf{The Continuous ``Right Hemisphere'' Master}: The KAIROS engine, integrating affective and resonant states.
@@ -68,3 +68,9 @@ This coupling yields several profound advantages:
 The Token Clock resolves one of the fundamental barriers to embedding auto-regressive models within embodied, continuous systems. By mathematically coupling the discrete generation stream to the continuous Riemann Phase Integration of the KAIROS engine, we provide the BecomingONE architecture with a unified, jitter-free temporal foundation, essential for true biological resonance and authentic real-time presence.
 
 \end{document}
+
+
+\section*{References}
+\begin{enumerate}
+\item Lamport, L. (1978). Time, clocks, and the ordering of events in a distributed system. \textit{Communications of the ACM}.
+\end{enumerate}

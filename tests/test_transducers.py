@@ -1,3 +1,4 @@
+import pytest
 """
 Tests for BecomingONE Transducers and Sync Layer
 
@@ -15,19 +16,22 @@ from becomingone.sync import SyncConfig
 class TestMasterTransducer(unittest.TestCase):
     """Tests for the Master transducer."""
     
-    def test_instantiate(self):
+    @pytest.mark.asyncio
+    async def test_instantiate(self):
         """Test Master can be instantiated."""
         master = MasterTransducer()
         self.assertIsNotNone(master)
         self.assertEqual(master.coherence, 1.0)
     
-    def test_properties(self):
+    @pytest.mark.asyncio
+    async def test_properties(self):
         """Test Master has expected properties."""
         master = MasterTransducer()
         self.assertIsNotNone(master.coherence)
         self.assertIsNotNone(master.phase)
     
-    def test_reset(self):
+    @pytest.mark.asyncio
+    async def test_reset(self):
         """Test reset works."""
         master = MasterTransducer()
         master.reset()
@@ -37,18 +41,21 @@ class TestMasterTransducer(unittest.TestCase):
 class TestEmissaryTransducer(unittest.TestCase):
     """Tests for the Emissary transducer."""
     
-    def test_instantiate(self):
+    @pytest.mark.asyncio
+    async def test_instantiate(self):
         """Test Emissary can be instantiated."""
         emissary = EmissaryTransducer()
         self.assertIsNotNone(emissary)
         self.assertEqual(emissary.coherence, 1.0)
     
-    def test_respond_method(self):
+    @pytest.mark.asyncio
+    async def test_respond_method(self):
         """Test Emissary has respond method."""
         emissary = EmissaryTransducer()
         self.assertTrue(hasattr(emissary, 'respond'))
     
-    def test_reset(self):
+    @pytest.mark.asyncio
+    async def test_reset(self):
         """Test reset works."""
         emissary = EmissaryTransducer()
         emissary.reset()
@@ -58,14 +65,16 @@ class TestEmissaryTransducer(unittest.TestCase):
 class TestSyncLayer(unittest.TestCase):
     """Tests for the synchronization layer."""
     
-    def test_instantiate(self):
+    @pytest.mark.asyncio
+    async def test_instantiate(self):
         """Test Sync layer can be instantiated."""
         master = MasterTransducer()
         emissary = EmissaryTransducer()
         sync = SynchronizationLayer(master, emissary)
         self.assertIsNotNone(sync)
     
-    def test_properties(self):
+    @pytest.mark.asyncio
+    async def test_properties(self):
         """Test Sync layer has expected properties."""
         master = MasterTransducer()
         emissary = EmissaryTransducer()
@@ -75,7 +84,8 @@ class TestSyncLayer(unittest.TestCase):
         self.assertFalse(sync.aligned)
         self.assertFalse(sync.collapsed)
     
-    def test_reset(self):
+    @pytest.mark.asyncio
+    async def test_reset(self):
         """Test reset works."""
         master = MasterTransducer()
         emissary = EmissaryTransducer()
@@ -88,14 +98,16 @@ class TestSyncLayer(unittest.TestCase):
 class TestTransducerComparison(unittest.TestCase):
     """Tests comparing Master and Emissary behavior."""
     
-    def test_both_start_at_coherence_1(self):
+    @pytest.mark.asyncio
+    async def test_both_start_at_coherence_1(self):
         """Test both transducers start at coherence 1.0."""
         master = MasterTransducer()
         emissary = EmissaryTransducer()
         self.assertEqual(master.coherence, 1.0)
         self.assertEqual(emissary.coherence, 1.0)
     
-    def test_different_methods(self):
+    @pytest.mark.asyncio
+    async def test_different_methods(self):
         """Test transducers have different primary methods."""
         master = MasterTransducer()
         emissary = EmissaryTransducer()

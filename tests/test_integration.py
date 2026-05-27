@@ -1,3 +1,4 @@
+import pytest
 """
 Integration Test: Full BecomingONE System
 
@@ -53,7 +54,8 @@ class TestFullSystemIntegration(unittest.TestCase):
         # Witnessing
         self.witnessing = WitnessingLayer()
         
-    def test_master_emissary_sync(self):
+    @pytest.mark.asyncio
+    async def test_master_emissary_sync(self):
         """Test Master and Emissary can synchronize."""
         # Both start at coherence 1.0
         self.assertEqual(self.master.coherence, 1.0)
@@ -64,13 +66,15 @@ class TestFullSystemIntegration(unittest.TestCase):
         self.assertFalse(self.sync.aligned)
         self.assertFalse(self.sync.collapsed)
         
-    def test_memory_integration(self):
+    @pytest.mark.asyncio
+    async def test_memory_integration(self):
         """Test memory can be instantiated and bound."""
         # Memory should be instantiated and bound to engine
         self.assertIsNotNone(self.memory.engine)
         self.assertEqual(len(self.memory), 0)
         
-    def test_witnessing_integration(self):
+    @pytest.mark.asyncio
+    async def test_witnessing_integration(self):
         """Test witnessing can observe the system."""
         # Create a witness
         self.witnessing.create_witness("integration_test")
@@ -91,7 +95,8 @@ class TestFullSystemIntegration(unittest.TestCase):
         self.assertIsNotNone(witnessed)
         self.assertEqual(witnessed.witness_id, "integration_test")
         
-    def test_full_flow(self):
+    @pytest.mark.asyncio
+    async def test_full_flow(self):
         """
         Test THE_ONE flowing through all layers.
         
@@ -113,18 +118,21 @@ class TestTemporalCoherence(unittest.TestCase):
     Test that temporal coherence dynamics work as expected.
     """
     
-    def test_tau_property(self):
+    @pytest.mark.asyncio
+    async def test_tau_property(self):
         """Test T_tau property exists."""
         engine = KAIROSTemporalEngine()
         self.assertIsNotNone(engine.T_tau)
         
-    def test_coherence_property(self):
+    @pytest.mark.asyncio
+    async def test_coherence_property(self):
         """Test coherence property exists and starts at 1.0."""
         engine = KAIROSTemporalEngine()
         self.assertEqual(engine.coherence, 1.0)
         self.assertIsNotNone(engine.coherence)
         
-    def test_collapse_properties(self):
+    @pytest.mark.asyncio
+    async def test_collapse_properties(self):
         """Test collapse properties exist."""
         sync = SynchronizationLayer(
             MasterTransducer(),
