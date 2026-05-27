@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipfs-index
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipfs-index
+  template:
+    metadata:
+      labels:
+        app: ipfs-index
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: racknerd-1203387
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: ipfs-index-data
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: ipfs-index-data
+        persistentVolumeClaim:
+          claimName: ipfs-index-data
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ipfs-index-service
+  namespace: default
+spec:
+  selector:
+    app: ipfs-index
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ipfs-index-data
+  namespace: default
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 1Gi
