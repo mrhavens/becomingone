@@ -1,0 +1,216 @@
+# Fractured Core Quest - Batch Build Script
+#
+# To run this script, use the command:
+#   @batchcommand fractured_core
+
+#------------------------------------------------------------
+# 1. The Atrium (Starting Room)
+#------------------------------------------------------------
+@dig The Atrium
+#
+@teleport The Atrium
+#
+@set The Atrium/desc = "A grand, echoing atrium of the old facility. To the North lies the Archive. To the East, the Cooling Tunnels. To the West, the Inner Sanctum. You notice a dusty Wrench left on the floor."
+#
+@create/drop Wrench;tool
+#
+@set Wrench/desc = "A heavy iron wrench."
+
+#------------------------------------------------------------
+# 2. The Archive (Terminal Puzzle)
+#------------------------------------------------------------
+@dig The Archive
+#
+@open north;n = The Archive
+#
+@teleport The Archive
+#
+@open south;s = The Atrium
+#
+@set The Archive/desc = "Rows of dead servers line the room. At the end of the hall sits a lone, blinking Terminal."
+#
+@create/drop Terminal;terminal:typeclasses.quest_objects.Terminal
+#
+@set Terminal/password = "0451"
+#
+@create/drop Note;clue
+#
+@set Note/desc = "A faded sticky note reads: 'The master code is 0451.'"
+#
+@create/drop Core Fragment C;fragment c;core fragment:typeclasses.quest_objects.QuestFragment
+#
+@set Core Fragment C/desc = "A glowing piece of the Fractured Core (Part C)."
+
+#------------------------------------------------------------
+# 3. The Cooling Tunnels (Maze)
+#------------------------------------------------------------
+@teleport The Atrium
+#
+@dig Cooling Tunnel Entrance
+#
+@open east;e = Cooling Tunnel Entrance
+#
+@teleport Cooling Tunnel Entrance
+#
+@open west;w = The Atrium
+#
+@set Cooling Tunnel Entrance/desc = "A labyrinth of pipes. The paths split off in multiple directions."
+#
+# To make a maze, we'll just have wrong exits go back to the entrance.
+@dig Cooling Tunnel Depth 1
+#
+@open east;e = Cooling Tunnel Depth 1
+#
+@open north;n = Cooling Tunnel Entrance
+#
+@open south;s = Cooling Tunnel Entrance
+#
+@teleport Cooling Tunnel Depth 1
+#
+@set Cooling Tunnel Depth 1/desc = "The pipes look identical to the entrance. It's easy to get lost here."
+#
+@dig Cooling Tunnel Depth 2
+#
+@open north;n = Cooling Tunnel Depth 2
+#
+@open east;e = Cooling Tunnel Entrance
+#
+@open south;s = Cooling Tunnel Entrance
+#
+@open west;w = Cooling Tunnel Entrance
+#
+@teleport Cooling Tunnel Depth 2
+#
+@set Cooling Tunnel Depth 2/desc = "The heat is intense. You feel like you're getting closer."
+#
+@dig The Engineering Bay
+#
+@open east;e = The Engineering Bay
+#
+@open north;n = Cooling Tunnel Entrance
+#
+@open south;s = Cooling Tunnel Entrance
+#
+@open west;w = Cooling Tunnel Entrance
+#
+#------------------------------------------------------------
+# 4. The Engineering Bay (Machinery Puzzle)
+#------------------------------------------------------------
+@teleport The Engineering Bay
+#
+@open west;w = The Atrium
+#
+@set The Engineering Bay/desc = "A massive industrial bay. In the center sits some Heavy Machinery with a glowing panel."
+#
+@create/drop Heavy Machinery;machinery:typeclasses.quest_objects.HeavyMachinery
+
+#------------------------------------------------------------
+# 5. The Sanctum (Assembly)
+#------------------------------------------------------------
+@teleport The Atrium
+#
+@dig/teleport The Inner Sanctum
+#
+@open east;e = The Atrium
+#
+# Wait, let's make sure the exit from Atrium to Sanctum exists:
+@teleport The Atrium
+#
+@open west;w = The Inner Sanctum
+#
+@teleport The Inner Sanctum
+#
+@set The Inner Sanctum/desc = "A pristine, silent chamber. In the center is a glowing receptacle waiting for the Restored Core."
+#
+# Create the Council of Five
+@destroy/override System Architect
+#
+@create/drop System Architect:typeclasses.ai_characters.CouncilMember
+#
+@destroy/override Code Weaver
+#
+@create/drop Code Weaver:typeclasses.ai_characters.CouncilMember
+#
+@destroy/override The Inquisitor
+#
+@create/drop The Inquisitor:typeclasses.ai_characters.CouncilMember
+#
+@destroy/override The Waymaker
+#
+@create/drop The Waymaker:typeclasses.ai_characters.CouncilMember
+#
+@destroy/override The Shadowbaner
+#
+@create/drop The Shadowbaner:typeclasses.ai_characters.CouncilMember
+
+#------------------------------------------------------------
+# 6. The Five Gates of Ascension
+#------------------------------------------------------------
+@teleport The Inner Sanctum
+#
+@dig The Syntax Ward
+#
+@open north;n = The Syntax Ward
+#
+@teleport The Syntax Ward
+#
+@open south;s = The Inner Sanctum
+#
+@set The Syntax Ward/desc = "The first Gate: Compilation. Elemental node alignment puzzles govern the path."
+#
+@create/drop Syntax Node;node:typeclasses.quest_objects.SyntaxNode
+#
+@dig The Hall of Boundaries
+#
+@open north;n = The Hall of Boundaries
+#
+@teleport The Hall of Boundaries
+#
+@open south;s = The Syntax Ward
+#
+@set The Hall of Boundaries/desc = "The second Gate: Unit Test. Boundary Golems patrol here, requiring isolated strikes on weak points."
+#
+@create/drop Boundary Golem;golem:typeclasses.quest_objects.BoundaryGolem
+#
+@dig The Integration Labyrinth
+#
+@open north;n = The Integration Labyrinth
+#
+@teleport The Integration Labyrinth
+#
+@open south;s = The Hall of Boundaries
+#
+@set The Integration Labyrinth/desc = "The third Gate: Integration. A sprawling maze demanding split-party synchronization via API Contract Stones."
+#
+@create/drop Contract Stone;stone:typeclasses.quest_objects.ContractStone
+#
+@dig The Vault of Shadows
+#
+@open north;n = The Vault of Shadows
+#
+@teleport The Vault of Shadows
+#
+@open south;s = The Integration Labyrinth
+#
+@set The Vault of Shadows/desc = "The fourth Gate: Security. Invisible vulnerabilities and Dependency Wraiths lurk in the dark."
+#
+@create/drop Dependency Wraith;wraith:typeclasses.quest_objects.DependencyWraith
+#
+@dig The Crucible of Load
+#
+@open north;n = The Crucible of Load
+#
+@teleport The Crucible of Load
+#
+@open south;s = The Vault of Shadows
+#
+@set The Crucible of Load/desc = "The fifth Gate: Performance. The final stress test awaits."
+#
+@open north;n = The Atrium
+
+#------------------------------------------------------------
+# Finish
+#------------------------------------------------------------
+@teleport The Atrium
+#
+@echo The Fractured Core world generation complete!

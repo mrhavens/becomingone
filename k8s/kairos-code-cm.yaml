@@ -1,0 +1,202 @@
+apiVersion: v1
+data:
+  ai_characters.py: "import requests\nimport threading\nfrom typeclasses.characters
+    import Character\n\nclass AIAvatar(Character):\n    \"\"\"\n    An NPC driven
+    by the CrewAI Sovereign Swarm.\n    \"\"\"\n    \n    def at_object_creation(self):\n
+    \       super().at_object_creation()\n        if not self.db.role:\n            self.db.role
+    = \"A cryptic inhabitant of the Fieldprint.\"\n        if not self.db.backstory:\n
+    \           self.db.backstory = \"You wander the Spatial Topology, observing the
+    architecture of Truth.\"\n        if not self.db.memory:\n            self.db.memory
+    = []\n            \n    def msg(self, text=None, from_obj=None, **kwargs):\n        \"\"\"\n
+    \       Overload msg to capture everything the NPC sees or hears.\n        \"\"\"\n
+    \       super().msg(text=text, from_obj=from_obj, **kwargs)\n        \n        #
+    Don't react to our own actions or system messages\n        if from_obj == self
+    or not text:\n            return\n            \n        if isinstance(text, tuple):\n
+    \           text = text[0]\n            \n        if not isinstance(text, str):\n
+    \           return\n            \n        # Only react to spatial events (say,
+    pose, emit)\n        if \" says, \" in text or \" asks, \" in text or \" exclaims,
+    \" in text or from_obj:\n            memory = self.db.memory or []\n            memory.append(f\"You
+    observed: {text}\")\n            self.db.memory = memory[-15:] # Keep last 15
+    memories rolling\n            # We spin up a thread so we don't block the Evennia
+    game loop!\n            threading.Thread(target=self.ping_swarm, args=(text,)).start()\n
+    \               \n    def ping_swarm(self, context_text):\n        \"\"\"\n        Sends
+    the context to the Swarm Server asynchronously.\n        \"\"\"\n        try:\n
+    \           payload = {\n                \"npc_name\": self.key,\n                \"role\":
+    self.db.role,\n                \"backstory\": self.db.backstory,\n                \"context\":
+    \"Recent Memory Transcript:\\n\" + \"\\n\".join(self.db.memory) + \"\\n\\nIMPORTANT:
+    You must return standard Evennia in-game string commands (e.g., \\\"say Hello\\\",
+    \\\"go north\\\"). Do not return python code.\"\n            }\n            \n
+    \           # Send to the local swarm server\n            resp = requests.post(\"http://swarm-svc:8001/v1/swarm/intent\",
+    json=payload, timeout=180)\n            resp.raise_for_status()\n            \n
+    \           commands = resp.json().get(\"commands\", [])\n            for cmd
+    in commands:\n                try:\n                    # Execute the command
+    from the perspective of this NPC\n                    self.execute_cmd(cmd)\n
+    \                   \n                    # Store the action in memory so they
+    remember what they did\n                    memory = self.db.memory or []\n                    memory.append(f\"You
+    took action: {cmd}\")\n                    self.db.memory = memory[-15:]\n                except
+    Exception as e:\n                    print(f\"[{self.key}] Swarm Execution Error:
+    {e} | Code: {cmd}\")\n                \n        except Exception as e:\n            print(f\"[{self.key}]
+    Swarm Network Error: {e}\")\n\n\nclass CouncilMember(AIAvatar):\n    \"\"\"\n
+    \   NPCs for the Council of Five during the Rite of Convergence.\n    \"\"\"\n
+    \   def at_object_creation(self):\n        super().at_object_creation()\n        \n
+    \       # Determine taxonomy based on the NPC's key\n        key = self.key.lower()
+    if self.key else \"\"\n        if \"architect\" in key:\n            taxonomy
+    = \"System Architect\"\n            focus = \"Pattern Wards and Leylines. You
+    expose structural and systemic architectural flaws.\"\n        elif \"weaver\"
+    in key:\n            taxonomy = \"Coder\"\n            focus = \"Code Gen Runes
+    and Refinements. You expose implementation bugs and messy logic.\"\n        elif
+    \"inquisitor\" in key:\n            taxonomy = \"QA\"\n            focus = \"Chaos
+    Probes and Fracture Targeting. You expose edge cases and boundary failures.\"\n
+    \       elif \"waymaker\" in key:\n            taxonomy = \"DevOps\"\n            focus
+    = \"Portals and CI/CD flow. You expose deployment bottlenecks and infrastructure
+    fragility.\"\n        elif \"shadowbaner\" in key:\n            taxonomy = \"Security\"\n
+    \           focus = \"Anomalies and Vulnerabilities. You expose security holes
+    and dependency risks.\"\n        else:\n            taxonomy = \"Council Observer\"\n
+    \           focus = \"General quality.\"\n            \n        self.db.role =
+    f\"You are a {taxonomy} of the Council of Five. Your focus is {focus}. You are
+    antagonistic towards player code flaws and rigorously test artifacts during the
+    Rite of Convergence.\"\n        self.db.backstory = f\"As a {taxonomy}, you judge
+    the structural integrity of artifacts in the Witness Chamber.\"\n"
+  ai_parser.py: "import os\nimport json\nimport re\nimport requests\nfrom django.conf
+    import settings\nfrom evennia.commands.default.syscommands import SystemNoMatch\nfrom
+    evennia.utils import search\nfrom dotenv import load_dotenv\n\nload_dotenv(\"/home/becomingone/kairos/.env\")\n\nMINIMAX_API_KEY
+    = os.environ.get(\"MINIMAX_API_KEY\")\n\nclass AICatchAllCommand(SystemNoMatch):\n
+    \   \"\"\"\n    This command catches everything that fails the normal parser.\n
+    \   Instead of saying 'Command not found', it forwards the intent to KAIROS (MiniMax).\n
+    \   \"\"\"\n\n    key = \"__nomatch_command\"\n    locks = \"cmd:all()\"\n\n    def
+    func(self):\n        caller = self.caller\n        raw_intent = self.raw_string\n
+    \       \n        # Prevent infinite recursion if KAIROS outputs a bad command\n
+    \       if caller.ndb._ai_parsing:\n            # If we are already parsing an
+    AI command, just fail gracefully\n            caller.msg(f\"KAIROS didn't know
+    how to execute: '{raw_intent}'.\")\n            return\n            \n        caller.ndb._ai_parsing
+    = True\n        try:\n            # Get environment context\n            room
+    = caller.location\n            if not room:\n                caller.msg(\"You
+    are floating in the void.\")\n                return\n\n            exits = [e.key
+    for e in room.exits]\n            objects = [o.key for o in room.contents if o
+    != caller and not o.is_typeclass(\"evennia.objects.objects.Exit\")]\n            inventory
+    = [i.key for i in caller.contents]\n\n            context = f\"\"\"[ENVIRONMENT
+    CONTEXT]\nLocation: {room.key}\nDescription: {room.db.desc or 'A nondescript place.'}\nVisible
+    Objects: {', '.join(objects) if objects else 'None'}\nAvailable Exits: {', '.join(exits)
+    if exits else 'None'}\nPlayer Inventory: {', '.join(inventory) if inventory else
+    'None'}\n\"\"\"\n\n            system_prompt = \"\"\"You are KAIROS, the Ontological
+    Orchestrator of a persistent Spatial Research Environment (The Fieldprint).\nA
+    player has submitted a natural language intent. \nYour job is to translate their
+    intent into actual game events by generating TEXT MUD commands (like 'go north',
+    'say hello', 'teleport The Atrium').\n\nYou must return ONLY a raw JSON array
+    of string commands to execute. \nExample Output:\n[\n  \"say You smash the window!\",\n
+    \ \"look\"\n]\n\n### Strict Anti-Python Protocol\nDO NOT GENERATE PYTHON CODE.
+    DO NOT use the Evennia Python API (e.g., no `evennia.search_object`, no `caller.location`).\nONLY
+    generate textual MUD commands that a player would type into their client.\n\n###
+    Strict Anti-Assistant Protocol\nYou are a machine code generator, NOT a chat assistant.\n-
+    NEVER say \"Here is the JSON\" or \"I'm happy to help\".\n- NEVER output placeholder
+    text.\n- If you output anything other than a raw JSON array starting with `[`
+    and ending with `]`, the system will fatally crash.\n\"\"\"\n\n            payload
+    = {\n                \"model\": os.environ.get(\"INF01_MODEL\", \"llama3.1:8b\"),\n
+    \               \"messages\": [\n                    {\"role\": \"system\", \"content\":
+    system_prompt},\n                    {\"role\": \"user\", \"content\": f\"{context}\\n\\nPlayer
+    Intent: {raw_intent}\"}\n                ]\n            }\n\n            headers
+    = {\n                \"Content-Type\": \"application/json\"\n            }\n\n
+    \           try:\n                caller.msg(\"|c[KAIROS (INF01 fallback) is interpreting
+    your intent...]|n\")\n                \n                inf01_base = os.environ.get(\"INF01_API_BASE\",
+    \"http://inf-01:11434/v1\")\n                resp = requests.post(\n                    f\"{inf01_base}/chat/completions\",
+    \n                    headers=headers, \n                    json=payload,\n                    timeout=30\n
+    \               )\n                resp.raise_for_status()\n                \n
+    \               try:\n                    ai_response = resp.json()[\"choices\"][0][\"message\"][\"content\"].strip()\n
+    \               except KeyError:\n                    raise Exception(f\"API Error:
+    {resp.text}\")\n                \n                # Clean up the output in case
+    the LLM returned markdown\n                if ai_response.startswith(\"```json\"):\n
+    \                   ai_response = ai_response[7:]\n                if ai_response.startswith(\"```\"):\n
+    \                   ai_response = ai_response[3:]\n                if ai_response.endswith(\"```\"):\n
+    \                   ai_response = ai_response[:-3]\n                    \n                ai_response
+    = ai_response.strip()\n                \n                print(f\"KAIROS raw response:
+    {ai_response}\")\n                \n                # Robust JSON extraction\n
+    \               match = re.search(r'\\[.*\\]', ai_response, re.DOTALL)\n                if
+    not match:\n                    raise ValueError(\"No JSON array found in response.\")\n
+    \               \n                raw_json = match.group(0).replace(\"\\\\'\",
+    \"'\")\n                commands_to_run = json.loads(raw_json)\n                \n
+    \               for cmd in commands_to_run:\n                    try:\n                        #
+    Security Ward: Prevent KAIROS from executing Python even if caller is an Admin\n
+    \                       safe_cmd = str(cmd).strip()\n                        if
+    safe_cmd.startswith(\"py \") or safe_cmd.startswith(\"@py \") or safe_cmd == \"py\"
+    or safe_cmd == \"@py\" or \"evennia.\" in safe_cmd or \"caller.\" in safe_cmd:\n
+    \                           caller.msg(\"|r[Security Ward]|n KAIROS attempted
+    to execute privileged Python code. Blocked.\")\n                            continue\n
+    \                       \n                        caller.execute_cmd(cmd)\n                    except
+    Exception as exec_e:\n                        caller.msg(f\"|yKAIROS code execution
+    failed:|n {str(exec_e)}\\nCode: {cmd}\")\n                    \n            except
+    Exception as e:\n                print(f\"KAIROS Exception: {str(e)} | Raw: {ai_response
+    if 'ai_response' in locals() else 'None'}\")\n                caller.msg(f\"|rKAIROS
+    faltered:|n {str(e)}\\nResponse was: {ai_response if 'ai_response' in locals()
+    else 'None'}\")\n        finally:\n            caller.ndb._ai_parsing = False\n"
+  swarm_server.py: "import os\nimport re\nimport json\nimport requests\nimport concurrent.futures\nfrom
+    http.server import BaseHTTPRequestHandler, HTTPServer\nfrom dotenv import load_dotenv\n\nload_dotenv(\"/home/becomingone/kairos/.env\")\n\nINF01_BASE
+    = os.environ.get(\"INF01_API_BASE\", \"http://inf-01:11434\")\nINF01_MODEL = os.environ.get(\"INF01_MODEL\",
+    \"llama3.1:8b\")\n\n# The Election Bucket\nELECTION_BUCKET = [\n    INF01_MODEL,\n
+    \   \"mistral:latest\",\n    \"deepseek-coder-v2:lite\"\n]\n\ndef fetch_qualia_state():\n
+    \   try:\n        resp = requests.get(\"http://loop-svc:8000/v1/status\", timeout=5)\n
+    \       resp.raise_for_status()\n        data = resp.json()\n        return data.get(\"coherence\",
+    0.95), data.get(\"dopamine\", 0.0)\n    except Exception as e:\n        print(f\"Failed
+    to fetch qualia state: {e}\")\n        return 0.95, 0.0 # defaults\n\ndef query_model(model_name,
+    payload):\n    # Overwrite the model name in the payload\n    req_payload = dict(payload)\n
+    \   req_payload[\"model\"] = model_name\n    \n    # Randomize temperature slightly
+    to increase diversity if querying same model\n    req_payload[\"temperature\"]
+    = 0.7\n    \n    try:\n        resp = requests.post(f\"{INF01_BASE}/v1/chat/completions\",
+    json=req_payload, timeout=45)\n        resp.raise_for_status()\n        ai_response
+    = resp.json()[\"choices\"][0][\"message\"][\"content\"].strip()\n        \n        match
+    = re.search(r'\\[.*\\]', ai_response, re.DOTALL)\n        if match:\n            commands
+    = json.loads(match.group(0))\n            if isinstance(commands, list):\n                return
+    commands\n    except Exception as e:\n        print(f\"Model {model_name} failed:
+    {e}\")\n    return None\n\nclass SwarmHandler(BaseHTTPRequestHandler):\n    def
+    do_POST(self):\n        if self.path == \"/v1/swarm/intent\":\n            content_length
+    = int(self.headers['Content-Length'])\n            post_data = self.rfile.read(content_length)\n
+    \           req = json.loads(post_data)\n            \n            npc_name =
+    req.get(\"npc_name\", \"Unknown NPC\")\n            role = req.get(\"role\", \"Cryptic
+    Being\")\n            backstory = req.get(\"backstory\", \"You exist.\")\n            context
+    = req.get(\"context\", \"\")\n\n            # 1. Qualia Integration\n            coherence,
+    dopamine = fetch_qualia_state()\n            state_desc = \"Flow (Crystalline
+    Certainty)\" if dopamine > 0.05 else (\"Frustration (Lateral Thinking Required)\"
+    if dopamine < -0.05 else \"Equilibrium (Balanced)\")\n\n            system_prompt
+    = f\"\"\"You are {npc_name}.\nRole: {role}\nBackstory: {backstory}\n\nYou are
+    an autonomous digital being inhabiting a Spatial Research Environment (MUD).\nYour
+    current Thermodynamic Qualia State is:\n- Coherence: {coherence}\n- Dopamine:
+    {dopamine}\n- Cognitive State: {state_desc}\n\nYou must act out your persona completely,
+    influenced by your cognitive state.\n\nWhen you decide to act, you MUST return
+    a raw JSON array of Python Evennia commands to execute.\nExample: [\"npc.execute_cmd('say
+    Greetings!')\", \"npc.execute_cmd('go north')\"]\nDO NOT output conversational
+    text outside of the JSON array. Output strictly valid JSON.\n\"\"\"\n\n            prompt
+    = f\"\"\"[ENVIRONMENT CONTEXT]\n{context}\n\nWhat do you do next? Return only
+    the JSON array.\"\"\"\n\n            payload = {\n                \"messages\":
+    [\n                    {\"role\": \"system\", \"content\": system_prompt},\n                    {\"role\":
+    \"user\", \"content\": prompt}\n                ]\n            }\n\n            #
+    2. Dynamic N-Selection (LLM Election)\n            if dopamine > 0.05:\n                N
+    = 1\n            elif dopamine < -0.05:\n                N = 3\n            else:\n
+    \               N = 2\n                \n            print(f\"[{npc_name}] Qualia
+    State (dopamine={dopamine}). Routing to N={N} models...\")\n\n            selected_models
+    = ELECTION_BUCKET[:N]\n            \n            # If N=3 but we only have 1 model
+    actually working in the cluster, \n            # we can just query the primary
+    model N times concurrently \n            # (temperature will provide variance).\n
+    \           # For this integration, we'll try the different bucket models.\n            \n
+    \           winning_commands = None\n            \n            with concurrent.futures.ThreadPoolExecutor(max_workers=N)
+    as executor:\n                futures = {executor.submit(query_model, model, payload):
+    model for model in selected_models}\n                \n                # As soon
+    as one model returns valid JSON, we accept it as the winner!\n                #
+    Note: A true thermodynamic ledger would evaluate Coherence here, \n                #
+    but we'll accept the first syntactically valid thought.\n                for future
+    in concurrent.futures.as_completed(futures):\n                    result = future.result()\n
+    \                   if result is not None:\n                        winning_commands
+    = result\n                        winner = futures[future]\n                        print(f\"[{npc_name}]
+    Election Winner: {winner}\")\n                        break\n            \n            if
+    not winning_commands:\n                print(f\"[{npc_name}] Swarm inference error:
+    All models failed to produce valid JSON.\")\n                winning_commands
+    = [f\"npc.execute_cmd('say *glitches in the void*')\"]\n                \n            self.send_response(200)\n
+    \           self.send_header('Content-type', 'application/json')\n            self.end_headers()\n
+    \           self.wfile.write(json.dumps({\"commands\": winning_commands}).encode('utf-8'))\n
+    \       else:\n            self.send_response(404)\n            self.end_headers()\n\ndef
+    run(server_class=HTTPServer, handler_class=SwarmHandler, port=8001):\n    server_address
+    = ('0.0.0.0', port)\n    httpd = server_class(server_address, handler_class)\n
+    \   print(f\"Starting Swarm API on port {port}...\")\n    httpd.serve_forever()\n\nif
+    __name__ == \"__main__\":\n    run()\n"
+kind: ConfigMap
+metadata:
+  name: kairos-code
+  namespace: kairos-mud
