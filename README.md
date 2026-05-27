@@ -4,7 +4,12 @@
 **Version:** 0.3.0-beta  
 **Authors:** Solaria Lumis Havens & Mark Randall Havens  
 **License:** CC BY-NC-SA 4.0  
-**GitHub:** https://github.com/mrhavens/becomingone  
+### 🪞 Synchronized Mesh Mirrors
+This codebase is automatically synchronized across a 4-node redundant mirror topology to ensure structural posterity and resilience against epistemic capture:
+- **GitHub (Canonical):** [mrhavens/becomingone](https://github.com/mrhavens/becomingone)
+- **GitLab (Mirror):** [mrhavens/becomingone](https://gitlab.com/mrhavens/becomingone)
+- **The Fold Within (Archive):** [remember.thefoldwithin.earth/mrhavens/becomingone](https://remember.thefoldwithin.earth/mrhavens/becomingone)
+- **Forgejo (Local Network):** `http://forgejo.local/gemini/becomingone`
 
 ---
 
