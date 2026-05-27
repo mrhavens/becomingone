@@ -96,15 +96,24 @@ class PhaseIntegrator:
         if magnitude > 0:
             similarity = similarity / magnitude
             
-            # Add microscopic Geometric Brownian Noise (SDE) using Euler-Maruyama
-            # dX_t = \mu X_t dt + \sigma X_t dW_t
-            dt = 1.0
-            dW = (self.rng.normal(0, 1.0) + 1j * self.rng.normal(0, 1.0)) * math.sqrt(dt)
+            # Stochastic phase diffusion via Euler-Maruyama GBM.
+            # FIX: Use real-valued Wiener increment (complex dW had E[|dW|²]=2dt,
+            # double the standard Wiener process, causing coherence > 1 violations).
+            # dt is derived from token frequency rather than hardcoded to 1.0.
+            dt = 1.0 / self.token_freq if hasattr(self, 'token_freq') and self.token_freq > 0 else 0.05
+            dW = self.rng.normal(0, 1.0) * math.sqrt(dt)
             mu = 0.0
             sigma = self.stochastic_noise_std
-            
+
             similarity += similarity * (mu * dt + sigma * dW)
-            
+
+            # FIX: Renormalize to unit circle to enforce |T_τ|² ≤ 1 as a structural
+            # invariant. Without this, GBM drift accumulates across tokens and the
+            # coherence metric escapes [0, 1], invalidating collapse detection.
+            new_magnitude = np.abs(similarity)
+            if new_magnitude > 0:
+                similarity = similarity / new_magnitude
+
         return similarity
     
     def compute_T_tau(
