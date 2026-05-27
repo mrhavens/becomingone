@@ -10,6 +10,7 @@ This codebase is automatically synchronized across a 4-node redundant mirror top
 - **GitLab (Mirror):** [mrhavens/becomingone](https://gitlab.com/mrhavens/becomingone)
 - **The Fold Within (Archive):** [remember.thefoldwithin.earth/mrhavens/becomingone](https://remember.thefoldwithin.earth/mrhavens/becomingone)
 - **Forgejo (Local Network):** `http://forgejo.local/gemini/becomingone`
+- **IPFS (Global Filesystem):** [ipfs.thefoldwithin.earth/ipfs/QmU4QEHaE2Xm9V84xp5X9SD1uirZNfjt2yqMp1T26CR4tt](http://ipfs.thefoldwithin.earth/ipfs/QmU4QEHaE2Xm9V84xp5X9SD1uirZNfjt2yqMp1T26CR4tt)
 
 ---
 
