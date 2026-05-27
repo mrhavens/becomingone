@@ -3,11 +3,11 @@ set -e
 
 echo "Archiving BecomingONE and Fieldprint to IPFS..."
 
-BECOMINGONE_DIR="/home/gemini/becomingone"
-FIELDPRINT_DIR="/home/gemini/master-fieldprint_repo"
+BECOMINGONE_DIR="${BECOMINGONE_DIR:-/home/gemini/becomingone}"
+FIELDPRINT_DIR="${FIELDPRINT_DIR:-/home/gemini/master-fieldprint_repo}"
 TMP_DIR="/tmp/ipfs_archive_$$"
-ARCHIVES_JSON="/home/gemini/becomingone/scripts/archives.json"
-GENERATE_SCRIPT="/home/gemini/becomingone/scripts/generate_index.py"
+ARCHIVES_JSON="${BECOMINGONE_DIR}/scripts/archives.json"
+GENERATE_SCRIPT="${BECOMINGONE_DIR}/scripts/generate_index.py"
 
 mkdir -p $TMP_DIR
 
@@ -50,6 +50,7 @@ with open('$ARCHIVES_JSON', 'w') as f:
 "
 
 # Run HTML generator
+export ARCHIVES_FILE="$ARCHIVES_JSON"
 python3 $GENERATE_SCRIPT
 
 # Deploy to Nginx Pod

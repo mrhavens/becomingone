@@ -1,0 +1,41 @@
+name: IPFS GitOps CD
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out BecomingONE
+        uses: actions/checkout@v4
+        with:
+          path: becomingone
+
+      - name: Check out Fieldprint
+        uses: actions/checkout@v4
+        with:
+          repository: mrhavens/master-fieldprint_repo
+          path: master-fieldprint_repo
+          # GITHUB_TOKEN is automatically provided by Forgejo for local repos
+          # But for a separate repo, we might need a PAT, or since it's a public/internal repo, 
+          # it might just clone. Let's try without a token first, or use a generic git clone.
+
+      - name: Install Kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      - name: Apply IPFS Manifests
+        run: |
+          cd becomingone
+          # The runner has cluster-admin because of our ClusterRoleBinding!
+          kubectl apply -f k8s/ipfs/
+
+      - name: Run Archival Pipeline
+        run: |
+          export BECOMINGONE_DIR="${GITHUB_WORKSPACE}/becomingone"
+          export FIELDPRINT_DIR="${GITHUB_WORKSPACE}/master-fieldprint_repo"
+          cd becomingone
+          ./scripts/archive_to_ipfs.sh
