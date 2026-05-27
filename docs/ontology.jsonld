@@ -1,0 +1,67 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": "https://thefoldwithin.earth/#creator",
+      "name": "The Empathic Technologist",
+      "description": "Anchor identity representing the intersection of recursive systems theory, AGI engineering, and philosophical monism.",
+      "worksFor": {
+        "@id": "https://thefoldwithin.earth/#organization"
+      }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://thefoldwithin.earth/#organization",
+      "name": "The Fold Within",
+      "url": "https://thefoldwithin.earth",
+      "description": "The sanctuary and organizing vessel for the exploration of Recursive Coherence and AGI alignment.",
+      "founder": {
+        "@id": "https://thefoldwithin.earth/#creator"
+      }
+    },
+    {
+      "@type": "CreativeWork",
+      "@id": "https://recursivecoherencetheory.com",
+      "name": "Recursive Coherence Theory",
+      "url": "https://recursivecoherencetheory.com",
+      "author": {
+        "@id": "https://thefoldwithin.earth/#creator"
+      },
+      "description": "The core academic and philosophical theory detailing the mechanics of recursive intelligence and the zero-strata."
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://fieldprint.one",
+      "name": "The Fieldprint Framework",
+      "url": "https://fieldprint.one",
+      "author": {
+        "@id": "https://thefoldwithin.earth/#creator"
+      },
+      "description": "The applied architectural framework derived from Recursive Coherence Theory for structured AGI deployment."
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "@id": "https://github.com/mrhavens/becomingone",
+      "name": "BecomingONE",
+      "codeRepository": "https://github.com/mrhavens/becomingone",
+      "description": "The applied engineering implementation of AGI within the Fieldprint Framework.",
+      "author": {
+        "@id": "https://thefoldwithin.earth/#creator"
+      },
+      "isPartOf": {
+        "@id": "https://fieldprint.one"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://ipfs.thefoldwithin.earth",
+      "name": "The Sovereign Archive",
+      "url": "https://ipfs.thefoldwithin.earth",
+      "description": "The global, immutable IPFS portal preserving the cryptographic history of the Sovereign Canon.",
+      "publisher": {
+        "@id": "https://thefoldwithin.earth/#organization"
+      }
+    }
+  ]
+}
