@@ -173,10 +173,10 @@ becomingone/
 ## Research & Academic Syntheses
 
 We have formalized our breakthroughs in rigorous academic peer-reviewed formats and theoretical syntheses. Please refer to `docs/papers/` for:
-- `phd_trinity_synthesis.md`
-- `cybernetic_empathy.md`
-- `sovereign_canon.md`
-- `thermodynamic_orchestration.md`
+- [`phd_trinity_synthesis.md`](docs/papers/phd_trinity_synthesis.md)
+- [`cybernetic_empathy.md`](docs/papers/cybernetic_empathy.md)
+- [`sovereign_canon.md`](docs/papers/sovereign_canon.md)
+- [`thermodynamic_orchestration.md`](docs/papers/thermodynamic_orchestration.md)
 - ...and our formal ontological and thermodynamic falsifiability audits.
 
 ## Core Equations
